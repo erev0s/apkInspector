@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "apkInspector"
+version = "1.0.0"
+description = "apkInspector is a tool designed to provide detailed insights into the central directory and local headers of APK files, offering the capability to extract content and decode the AndroidManifest.xml file."
+authors = ["erev0s <projects@erev0s.com>"]
+license = "GPL-3.0-or-later"
+readme = "README.md"
+
+packages = [
+    { include = "apkInspector" },
+    { include = "cli" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.5"
+
+[tool.poetry.scripts]
+apkInspector = "cli.apkInspector:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
