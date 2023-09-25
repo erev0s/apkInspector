@@ -73,7 +73,7 @@ def main():
             offset = cd_h_of_file["Relative offset of local file header"]
             print_headers_of_filename(cd_h_of_file, local_header_of_file)
             extracted_data = extract_file_based_on_header_info(apk_file, offset, local_header_of_file)
-            save_data_to_file(f"EXTRACTED_{args.f}", extracted_data)
+            save_data_to_file(f"EXTRACTED_{args.filename}", extracted_data)
         elif args.filename:
             try:
                 cd_h_of_file, local_header_of_file = headers_of_filename(apk_file, central_directory_entries, args.filename)

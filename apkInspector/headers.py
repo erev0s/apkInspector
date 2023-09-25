@@ -92,10 +92,10 @@ def parse_central_directory(apk_file, central_directory_offset):
             0].decode('utf-8')
         extra_field_length = central_directory_entry["Extra field length"]
         central_directory_entry["Extra Field"] = \
-            struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8')
+            struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8', 'ignore')
         file_comment_length = central_directory_entry["File comment length"]
         central_directory_entry["File comment"] = \
-            struct.unpack(f'<{file_comment_length}s', apk_file.read(file_comment_length))[0].decode('utf-8')
+            struct.unpack(f'<{file_comment_length}s', apk_file.read(file_comment_length))[0].decode('utf-8', 'ignore')
 
         central_directory_entry["Offset in the central directory header"] = c_offset
         central_directory_entries[central_directory_entry["Filename"]] = central_directory_entry
@@ -135,7 +135,7 @@ def parse_local_header(apk_file, entry_of_interest):
             'utf-8')
         extra_field_length = local_header_info["Extra field length"]
         local_header_info["Extra Field"] = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[
-            0].decode('utf-8')
+            0].decode('utf-8', 'ignore')
 
     return local_header_info
 
