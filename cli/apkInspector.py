@@ -7,7 +7,7 @@ from apkInspector.extract import extract_file_based_on_header_info, extract_all_
 from apkInspector.headers import find_eocd, parse_central_directory, headers_of_filename, print_headers_of_filename, \
     get_and_save_local_headers_of_all, show_and_save_info_of_central
 from apkInspector.helpers import save_data_to_file
-from apkInspector.manifestDecoder import ResChunkHeader, StringPoolType, process_headers, get_manifest
+from apkInspector.manifestDecoder import get_manifest
 
 
 def main():
@@ -97,11 +97,7 @@ def main():
                                                                      "AndroidManifest.xml")
             offset = cd_h_of_file["Relative offset of local file header"]
             extracted_data = io.BytesIO(extract_file_based_on_header_info(apk_file, offset, local_header_of_file))
-            ResChunkHeader.from_file(extracted_data)
-            string_pool = StringPoolType.from_file(extracted_data)
-            string_data = string_pool.strdata
-            elements = process_headers(extracted_data)
-            manifest = get_manifest(elements, string_data)
+            manifest = get_manifest(extracted_data)
             with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
                 xml_file.write(manifest)
             print("AndroidManifest was saved as: decoded_AndroidManifest.xml")

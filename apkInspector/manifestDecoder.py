@@ -369,7 +369,7 @@ def process_headers(file):
     return elements
 
 
-def get_manifest(elements, string_data):
+def create_manifest(elements, string_data):
     """
     Method to go over all elements and attempt to create the AndroidManifest.xml file.
     :param elements: Elements as retrieved from process_headers()
@@ -421,12 +421,18 @@ def get_manifest(elements, string_data):
     return android_manifest_xml
 
 
-# def beautify_validate_xml(xml_string):
-#     import xml.etree.ElementTree as ET
-#     ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
-#     root = ET.fromstring(xml_string)
-#     xml_pretty = ET.tostring(root, encoding='utf-8', method='xml').decode("utf-8")
-#     return xml_pretty
+def get_manifest(file_like_object):
+    """
+    Convenient method to return the AndroidManifest file as created by create_manifest()
+    :param file_like_object: expects the encoded AndroidManifest.xml file as a file-like object
+    :return: returns the decoded AndroidManifest file
+    """
+    ResChunkHeader.from_file(file_like_object)
+    string_pool = StringPoolType.from_file(file_like_object)
+    string_data = string_pool.strdata
+    elements = process_headers(file_like_object)
+    manifest = create_manifest(elements, string_data)
+    return manifest
 
 
 
