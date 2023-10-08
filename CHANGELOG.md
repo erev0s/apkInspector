@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 08-10-2023
+ - New method get_manifest() in manifestDecoder module for convenience when getting the decoded AndroidManifest from an apk or a file.
+ - added flag in the cli to be able to pass an encoded AndroidManifest.xml file and decode it.
+ - Slight corrections in docstrings and in versioning between cli and lib.
+
 ## [1.0.2] - 25-09-2023
  - Updated decoding in central and local header to ignore non decodable bytes
  - fixed a forgotten flag in the cli
