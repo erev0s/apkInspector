@@ -423,7 +423,7 @@ def create_manifest(elements, string_data):
 
 def get_manifest(file_like_object):
     """
-    Convenient method to return the AndroidManifest file as created by create_manifest()
+    Method to return the AndroidManifest file as created by create_manifest()
     :param file_like_object: expects the encoded AndroidManifest.xml file as a file-like object
     :return: returns the decoded AndroidManifest file
     """
