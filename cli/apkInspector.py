@@ -2,8 +2,7 @@ import argparse
 import io
 import os
 
-from apkInspector import __version__ as lib_version
-from . import __version__ as cli_version
+from apkInspector import __version__ as version
 from apkInspector.extract import extract_file_based_on_header_info, extract_all_files_from_central_directory
 from apkInspector.headers import find_eocd, parse_central_directory, headers_of_filename, print_headers_of_filename, \
     get_and_save_local_headers_of_all, show_and_save_info_of_central
@@ -46,12 +45,10 @@ def main():
 #         |_|                             |_|                                  
 """
         print(mm)
-        print(f"apkInspector CLI Version: {cli_version}")
-        print(f"apkInspector Library Version: {lib_version}")
+        print(f"apkInspector Library Version: {version}")
         print(f"Copyright 2023 erev0s <projects@erev0s.com>\n")
         return
-    print(f"apkInspector CLI Version: {cli_version}")
-    print(f"apkInspector Library Version: {lib_version}")
+    print(f"apkInspector Version: {version}")
     print(f"Copyright 2023 erev0s <projects@erev0s.com>\n")
     if args.apk is None:
         print("APK file is required")
