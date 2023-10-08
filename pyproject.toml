@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apkInspector"
-version = "1.0.2"
+version = "1.0.3"
 description = "apkInspector is a tool designed to provide detailed insights into the central directory and local headers of APK files, offering the capability to extract content and decode the AndroidManifest.xml file."
 authors = ["erev0s <projects@erev0s.com>"]
 license = "GPL-3.0-or-later"

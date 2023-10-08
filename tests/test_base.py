@@ -6,7 +6,7 @@ import hashlib
 
 from apkInspector.extract import extract_file_based_on_header_info, extract_all_files_from_central_directory
 from apkInspector.headers import find_eocd, parse_central_directory, parse_local_header, headers_of_filename
-from apkInspector.manifestDecoder import ResChunkHeader, StringPoolType, process_headers, get_manifest
+from apkInspector.manifestDecoder import ResChunkHeader, StringPoolType, process_headers, create_manifest
 
 
 class ApkInspectorTestCase(unittest.TestCase):
@@ -86,7 +86,7 @@ class ApkInspectorTestCase(unittest.TestCase):
         string_pool = StringPoolType.from_file(extracted_data)
         string_data = string_pool.strdata
         elements = process_headers(extracted_data)
-        manifest = get_manifest(elements, string_data)
+        manifest = create_manifest(elements, string_data)
         manifest_orig = '4e5928e06a5bcaf3373fd5dc0ff1cd5686c465d80ebd7f6d8b2883d58f180bb7'
         self.assertEqual(hashlib.sha256(str(manifest).encode('utf-8')).hexdigest(), manifest_orig)
 
@@ -101,7 +101,7 @@ class ApkInspectorTestCase(unittest.TestCase):
         string_pool = StringPoolType.from_file(extracted_data)
         string_data = string_pool.strdata
         elements = process_headers(extracted_data)
-        manifest = get_manifest(elements, string_data)
+        manifest = create_manifest(elements, string_data)
         manifest_mod = '4e5928e06a5bcaf3373fd5dc0ff1cd5686c465d80ebd7f6d8b2883d58f180bb7'
         self.assertEqual(hashlib.sha256(str(manifest).encode('utf-8')).hexdigest(), manifest_mod)
 

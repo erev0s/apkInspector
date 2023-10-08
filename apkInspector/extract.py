@@ -8,7 +8,7 @@ def extract_file_based_on_header_info(apk_file, offset, header_info):
     """
     Extracts a single file from the apk_file based on the information provided from the offset and the header_info.
     It takes into account that the compression method provided might not be STORED or DEFLATED and in that case
-    it treats it as STORED -> TODO: inspect other cases
+    it attempts to inflate it (Android < 9) and if that fails it considers it as STORED (Android >= 9).
     :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
     :param offset: The offset at which the local header for that file is.
     :param header_info: The local header dictionary info for that specific filename (parse_local_header)
