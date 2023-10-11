@@ -25,21 +25,24 @@ def extract_file_based_on_header_info(apk_file, offset, header_info):
     if compression_method == 0:  # Stored (no compression)
         compressed_data = apk_file.read(compressed_size)
         extracted_data = compressed_data
+        indicator = 'STORED'
     elif compression_method == 8:
         compressed_data = apk_file.read(compressed_size)
         # -15 for windows size due to raw stream with no header or trailer
         extracted_data = zlib.decompress(compressed_data, -15)
+        indicator = 'DEFLATED'
     else:
-        # Any ZIP compression method other than STORED is treated as DEFLATED by Android.
         try:
             cur_loc = apk_file.tell()
             compressed_data = apk_file.read(compressed_size)
             extracted_data = zlib.decompress(compressed_data, -15)
+            indicator = 'DEFLATED_TAMPERED'
         except:
             apk_file.seek(cur_loc)
             compressed_data = apk_file.read(uncompressed_size)
             extracted_data = compressed_data
-    return extracted_data
+            indicator = 'STORED_TAMPERED'
+    return extracted_data, indicator
 
 
 def extract_all_files_from_central_directory(apk_file, central_directory_entries, output_dir):
@@ -64,7 +67,7 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
             # Retrieve the header information for the file
             _, header_info = headers_of_filename(apk_file, central_directory_entries, filename)
             # Extract the file using the local header information
-            extracted_data = extract_file_based_on_header_info(apk_file, local_header_offset, header_info)
+            extracted_data = extract_file_based_on_header_info(apk_file, local_header_offset, header_info)[0]
             # Construct the output file path
             output_path = os.path.join(output_dir, filename)
             # Create directories if necessary

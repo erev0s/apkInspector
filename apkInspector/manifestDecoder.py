@@ -347,9 +347,10 @@ def process_headers(file):
     Takes into account that the resource map, the start namespace and end namespace chunks are only to be found once
     within the file.
     :param file: the xml file after the string pool chunk
-    :return: Returns all the elements found as their corresponding classes
+    :return: Returns all the elements found as their corresponding classes and whether dummy data were found in between
     """
     elements = []
+    dummy = 0
     possible_headers = {b'\x80\x01', b'\x00\x01', b'\x02\x01', b'\x03\x01', b'\x01\x01'}
     while True:
         # Parse the next header
@@ -361,12 +362,13 @@ def process_headers(file):
             break
         if check not in possible_headers:
             file.read(1)
+            dummy = 1
             continue
         chunk_type = parse_next_header(file)
         elements.append(chunk_type)
         if check in {b'\x80\x01', b'\x00\x01', b'\x01\x01'}:
             possible_headers.remove(check)
-    return elements
+    return elements, dummy
 
 
 def create_manifest(elements, string_data):
@@ -430,7 +432,7 @@ def get_manifest(file_like_object):
     ResChunkHeader.from_file(file_like_object)
     string_pool = StringPoolType.from_file(file_like_object)
     string_data = string_pool.strdata
-    elements = process_headers(file_like_object)
+    elements = process_headers(file_like_object)[0]
     manifest = create_manifest(elements, string_data)
     return manifest
 

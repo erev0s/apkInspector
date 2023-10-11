@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 11-10-2023
+ - Added functionality to report back which static analysis evasion techniques were used
+ - New flag in the CLI to use the added functionality of the library
+
 ## [1.0.3] - 08-10-2023
  - New method get_manifest() in manifestDecoder module for convenience when getting the decoded AndroidManifest from an apk or a file.
  - added flag in the cli to be able to pass an encoded AndroidManifest.xml file and decode it.
