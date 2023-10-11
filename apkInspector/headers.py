@@ -176,22 +176,23 @@ def print_headers_of_filename(cd_h_of_file, local_header_of_file):
         print(f"{k:40} : {local_header_of_file[k]}")
 
 
-def show_and_save_info_of_central(central_directory_entries, apk_name, export: bool):
+def show_and_save_info_of_central(central_directory_entries, apk_name, export: bool, show: bool):
     """
     Print information for each entry for the central directory header and allow to possibly export to JSON
     :param central_directory_entries: The dictionary with all the entries for the central directory (see parse_central_directory)
     :param apk_name: String with the name of the APK, so it can be used for the export.
     :param export: Boolean for exporting or not to JSON
+    :param show: Boolean for printing or not the entries
     """
-    if not export:
+    if show:
         for entry in central_directory_entries:
             pretty_print_header(entry)
             print(central_directory_entries[entry])
-    else:
+    if export:
         save_to_json(f"{apk_name}_central_directory_header.json", central_directory_entries)
 
 
-def get_and_save_local_headers_of_all(apk_file, central_directory_entries, apk_name, export: bool):
+def get_and_save_local_headers_of_all(apk_file, central_directory_entries, apk_name=None, export: bool = None, show: bool = None):
     """
     Creates a dictionary of local headers based on the entries retrieved from the central directory header.
     Additionally, allows to print the local headers and export the dictionary to JSON
@@ -199,13 +200,14 @@ def get_and_save_local_headers_of_all(apk_file, central_directory_entries, apk_n
     :param central_directory_entries: The dictionary with all the entries for the central directory (see parse_central_directory)
     :param apk_name: String with the name of the APK, so it can be used for the export.
     :param export: Boolean for exporting or not to JSON. If exporting it will not print.
+    :param show: Boolean for printing or not the entries
     :return: Returns the dictionary created with all the local headers, where the filename is the key.
     """
     local_headers = {}
     for entry in central_directory_entries:
         entry_local_header = parse_local_header(apk_file, central_directory_entries[entry])
         local_headers[entry_local_header['Filename']] = entry_local_header
-        if not export:
+        if show:
             pretty_print_header(entry_local_header['Filename'])
             print(entry_local_header)
     if export:
