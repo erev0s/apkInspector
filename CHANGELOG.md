@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 23-10-2023
+ - Restructure of manifestDecoder/axml module
+ - added CData in the possible chunks
+ - fix output format
+ - added poc for dummy attributes in tampering indicators
+
 ## [1.0.4] - 11-10-2023
  - Added functionality to report back which static analysis evasion techniques were used
  - New flag in the CLI to use the added functionality of the library

@@ -8,7 +8,7 @@ from apkInspector.headers import find_eocd, parse_central_directory, headers_of_
     get_and_save_local_headers_of_all, show_and_save_info_of_central
 from apkInspector.helpers import save_data_to_file, pretty_print_header
 from apkInspector.indicators import apk_tampering_check
-from apkInspector.manifestDecoder import get_manifest
+from apkInspector.axml import get_manifest
 
 
 def print_nested_dict(dictionary, parent_key=''):
