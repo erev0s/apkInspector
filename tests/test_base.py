@@ -6,8 +6,8 @@ import hashlib
 
 from apkInspector.extract import extract_file_based_on_header_info
 from apkInspector.headers import find_eocd, parse_central_directory, parse_local_header, headers_of_filename
-from apkInspector.indicators import zip_tampering_indicators, manifest_tampering_indicators, apk_tampering_check
-from apkInspector.manifestDecoder import ResChunkHeader, StringPoolType, process_headers, create_manifest
+from apkInspector.indicators import apk_tampering_check
+from apkInspector.axml import get_manifest
 
 
 class ApkInspectorTestCase(unittest.TestCase):
@@ -83,12 +83,8 @@ class ApkInspectorTestCase(unittest.TestCase):
                                                                  "AndroidManifest.xml")
         offset = cd_h_of_file["Relative offset of local file header"]
         extracted_data = io.BytesIO(extract_file_based_on_header_info(self.apk_orig, offset, local_header_of_file)[0])
-        ResChunkHeader.from_file(extracted_data)
-        string_pool = StringPoolType.from_file(extracted_data)
-        string_data = string_pool.strdata
-        elements = process_headers(extracted_data)[0]
-        manifest = create_manifest(elements, string_data)
-        manifest_orig = '4e5928e06a5bcaf3373fd5dc0ff1cd5686c465d80ebd7f6d8b2883d58f180bb7'
+        manifest = get_manifest(extracted_data)
+        manifest_orig = '2846a9e29eb2d75623246440ef02d5a098cde7d21e3948b3ece3c68e3bae13f3'
         self.assertEqual(hashlib.sha256(str(manifest).encode('utf-8')).hexdigest(), manifest_orig)
 
     def test_android_manifest_decoding_mod(self):
@@ -98,12 +94,8 @@ class ApkInspectorTestCase(unittest.TestCase):
                                                                  "AndroidManifest.xml")
         offset = cd_h_of_file["Relative offset of local file header"]
         extracted_data = io.BytesIO(extract_file_based_on_header_info(self.apk_mod, offset, local_header_of_file)[0])
-        ResChunkHeader.from_file(extracted_data)
-        string_pool = StringPoolType.from_file(extracted_data)
-        string_data = string_pool.strdata
-        elements = process_headers(extracted_data)[0]
-        manifest = create_manifest(elements, string_data)
-        manifest_mod = '4e5928e06a5bcaf3373fd5dc0ff1cd5686c465d80ebd7f6d8b2883d58f180bb7'
+        manifest = get_manifest(extracted_data)
+        manifest_mod = '2846a9e29eb2d75623246440ef02d5a098cde7d21e3948b3ece3c68e3bae13f3'
         self.assertEqual(hashlib.sha256(str(manifest).encode('utf-8')).hexdigest(), manifest_mod)
 
     def test_tampering_indicators(self):
@@ -111,8 +103,6 @@ class ApkInspectorTestCase(unittest.TestCase):
         mod_val = {'zip tampering': {'AndroidManifest.xml': {'central compression method': 30208, 'local compression method': 30208, 'actual compression method': 'STORED_TAMPERED'}}, 'manifest tampering': {'file_type': 0, 'string_pool': {'string count': 49, 'real string count': 32}}}
         orig = apk_tampering_check(self.apk_orig)
         mod = apk_tampering_check(self.apk_mod)
-        print(mod)
-        print(orig)
         self.assertEqual(orig, orig_val)
         self.assertEqual(mod, mod_val)
 

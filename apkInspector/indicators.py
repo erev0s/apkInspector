@@ -2,7 +2,7 @@ import io
 
 from .extract import extract_file_based_on_header_info
 from .headers import find_eocd, parse_central_directory, get_and_save_local_headers_of_all, headers_of_filename
-from .manifestDecoder import ResChunkHeader, StringPoolType, process_headers
+from .axml import ResChunkHeader, StringPoolType, process_elements, XmlResourceMapType, XmlStartElement
 
 
 def count_eocd(apk_file):
@@ -54,15 +54,21 @@ def manifest_tampering_indicators(manifest):
     :param manifest:
     :return:
     """
-    chunkHeader = ResChunkHeader.from_file(manifest)
+    chunkHeader = ResChunkHeader.parse(manifest)
     manifest_tampering_indicators_dict = {}
     if chunkHeader.type != 3:
         manifest_tampering_indicators_dict['file_type'] = chunkHeader.type
-    string_pool = StringPoolType.from_file(manifest)
+    string_pool = StringPoolType.parse(manifest)
     if len(string_pool.string_offsets) != string_pool.header.string_count:
         manifest_tampering_indicators_dict['string_pool'] = {'string count': string_pool.header.string_count,
                                                              'real string count': len(string_pool.string_offsets)}
-    dummy = process_headers(manifest)[1]
+    XmlResourceMapType.parse(manifest)
+    elements, dummy = process_elements(manifest)
+    for element in elements:
+        if isinstance(element, XmlStartElement):
+            for attr in element.attributes:
+                if string_pool.strdata[attr.name_index] == "":
+                    manifest_tampering_indicators_dict['dummy attributes'] = 'found (verify manually)'
     if dummy:
         manifest_tampering_indicators_dict['dummy data'] = 'found'
     return manifest_tampering_indicators_dict
