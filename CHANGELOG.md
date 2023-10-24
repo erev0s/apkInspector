@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 24-10-2023
+ - Updated extraction process to use the CD header instead of the local one
+
 ## [1.1.0] - 23-10-2023
  - Restructure of manifestDecoder/axml module
  - added CData in the possible chunks
