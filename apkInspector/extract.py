@@ -65,7 +65,7 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
             # Get the local header offset from the central directory entry
             local_header_offset = cd_header_info["Relative offset of local file header"]
             # Retrieve the header information for the file
-            _, header_info = headers_of_filename(apk_file, central_directory_entries, filename)
+            header_info, _ = headers_of_filename(apk_file, central_directory_entries, filename)
             # Extract the file using the local header information
             extracted_data = extract_file_based_on_header_info(apk_file, local_header_offset, header_info)[0]
             # Construct the output file path

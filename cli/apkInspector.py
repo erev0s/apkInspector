@@ -22,7 +22,7 @@ def print_nested_dict(dictionary, parent_key=''):
 
 def main():
     parser = argparse.ArgumentParser(description='apkInspector is a tool designed to provide detailed insights into '
-                                                 'the central directory and local headers of APK files, offering the '
+                                                 'the zip structure of APK files, offering the '
                                                  'capability to extract content and decode the AndroidManifest.xml '
                                                  'file.')
     parser.add_argument('-apk', help='APK to inspect')
