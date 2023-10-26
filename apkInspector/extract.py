@@ -4,21 +4,27 @@ import os
 from .headers import headers_of_filename
 
 
-def extract_file_based_on_header_info(apk_file, offset, header_info):
+def extract_file_based_on_header_info(apk_file, offset, local_header_info, central_directory_info):
     """
     Extracts a single file from the apk_file based on the information provided from the offset and the header_info.
     It takes into account that the compression method provided might not be STORED or DEFLATED and in that case
     it attempts to inflate it (Android < 9) and if that fails it considers it as STORED (Android >= 9).
     :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
     :param offset: The offset at which the local header for that file is.
-    :param header_info: The local header dictionary info for that specific filename (parse_local_header)
+    :param local_header_info: The local header dictionary info for that specific filename (parse_local_header)
+    :param central_directory_info:
     :return: Returns the actual extracted data for that file
     """
-    filename_length = header_info["File name length"]
-    extra_field_length = header_info["Extra field length"]
-    compressed_size = header_info["Compressed size"]
-    uncompressed_size = header_info["Uncompressed size"]
-    compression_method = header_info["Compression method"]
+    filename_length = local_header_info["File name length"]
+    if local_header_info["Compressed size"] == 0 or local_header_info["Uncompressed size"] == 0:
+        compressed_size = central_directory_info["Compressed size"]
+        uncompressed_size = central_directory_info["Uncompressed size"]
+    else:
+        compressed_size = local_header_info["Compressed size"]
+        uncompressed_size = local_header_info["Uncompressed size"]
+
+    extra_field_length = local_header_info["Extra field length"]
+    compression_method = local_header_info["Compression method"]
     # Skip the offset + local header to reach the compressed data
     local_header_size = 30  # Size of the local header in bytes
     apk_file.seek(offset + local_header_size + filename_length + extra_field_length)
@@ -65,9 +71,9 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
             # Get the local header offset from the central directory entry
             local_header_offset = cd_header_info["Relative offset of local file header"]
             # Retrieve the header information for the file
-            header_info, _ = headers_of_filename(apk_file, central_directory_entries, filename)
+            _, header_info = headers_of_filename(apk_file, filename, central_directory_entries)
             # Extract the file using the local header information
-            extracted_data = extract_file_based_on_header_info(apk_file, local_header_offset, header_info)[0]
+            extracted_data = extract_file_based_on_header_info(apk_file, local_header_offset, header_info, cd_header_info)[0]
             # Construct the output file path
             output_path = os.path.join(output_dir, filename)
             # Create directories if necessary

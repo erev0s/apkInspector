@@ -39,7 +39,7 @@ def zip_tampering_indicators(apk_file):
             temp['local compression method'] = lh_entry['Compression method']
         if cd_entry['Compression method'] not in [0, 8] or lh_entry['Compression method'] not in [0, 8]:
             indicator = \
-                extract_file_based_on_header_info(apk_file, cd_entry["Relative offset of local file header"], lh_entry)[
+                extract_file_based_on_header_info(apk_file, cd_entry["Relative offset of local file header"], lh_entry, cd_entry)[
                     1]
             temp['actual compression method'] = indicator
         if not temp:
@@ -83,9 +83,9 @@ def apk_tampering_check(apk_file):
     zip_tampering_indicators_dict = zip_tampering_indicators(apk_file)
     eocd = find_eocd(apk_file)
     central_directory_entries = parse_central_directory(apk_file, eocd["Offset of start of central directory"])
-    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file, central_directory_entries,
-                                                             "AndroidManifest.xml")
+    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file,
+                                                             "AndroidManifest.xml", central_directory_entries)
     offset = cd_h_of_file["Relative offset of local file header"]
-    manifest = io.BytesIO(extract_file_based_on_header_info(apk_file, offset, local_header_of_file)[0])
+    manifest = io.BytesIO(extract_file_based_on_header_info(apk_file, offset, local_header_of_file, cd_h_of_file)[0])
     manifest_tampering_indicators_dict = manifest_tampering_indicators(manifest)
     return {'zip tampering': zip_tampering_indicators_dict, 'manifest tampering': manifest_tampering_indicators_dict}

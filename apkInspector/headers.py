@@ -140,16 +140,19 @@ def parse_local_header(apk_file, entry_of_interest):
     return local_header_info
 
 
-def headers_of_filename(apk_file, central_directory_entries, filename):
+def headers_of_filename(apk_file, filename, central_directory_entries=None):
     """
     Provides both the central directory header and the local header of a specific filename
     :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
-    :param central_directory_entries: The dictionary with all the entries for the central directory (see
-    parse_central_directory)
     :param filename: The filename of the entry of interest
+    :param central_directory_entries: The dictionary with all the entries for the central directory (see
+    parse_central_directory). If not provided, it will be calculated.
     :return: Returns two dictionaries with the central directory header and the local header of the specified filename.
     If the filename is not found within the central directory dictionary it returns None.
     """
+    if not central_directory_entries:
+        eocd = find_eocd(apk_file)
+        central_directory_entries = parse_central_directory(apk_file, eocd["Offset of start of central directory"])
     if filename in central_directory_entries:
         cd_h_of_file = central_directory_entries[filename]
         local_header_of_file = parse_local_header(apk_file, cd_h_of_file)

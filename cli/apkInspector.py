@@ -79,19 +79,19 @@ def main():
 
             if args.filename and args.extract:
                 try:
-                    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file, central_directory_entries,
-                                                                             args.filename)
+                    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file,
+                                                                             args.filename, central_directory_entries)
                 except TypeError as e:
                     print(f"Are you sure the filename: {args.filename} exists?")
                     exit()
                 offset = cd_h_of_file["Relative offset of local file header"]
                 print_headers_of_filename(cd_h_of_file, local_header_of_file)
-                extracted_data = extract_file_based_on_header_info(apk_file, offset, local_header_of_file)[0]
+                extracted_data = extract_file_based_on_header_info(apk_file, offset, local_header_of_file, cd_h_of_file)[0]
                 save_data_to_file(f"EXTRACTED_{args.filename}", extracted_data)
             elif args.filename:
                 try:
-                    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file, central_directory_entries,
-                                                                             args.filename)
+                    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file,
+                                                                             args.filename, central_directory_entries)
                 except TypeError as e:
                     print(f"Are you sure the filename: {args.filename} exists?")
                     exit()
@@ -111,11 +111,11 @@ def main():
                 get_and_save_local_headers_of_all(apk_file, central_directory_entries, apk_name, args.export, True)
                 print(f"Central and local headers list complete. Export: {args.export}")
             elif args.manifest:
-                cd_h_of_file, local_header_of_file = headers_of_filename(apk_file, central_directory_entries,
-                                                                         "AndroidManifest.xml")
+                cd_h_of_file, local_header_of_file = headers_of_filename(apk_file,
+                                                                         "AndroidManifest.xml", central_directory_entries)
                 offset = cd_h_of_file["Relative offset of local file header"]
                 extracted_data = io.BytesIO(
-                    extract_file_based_on_header_info(apk_file, offset, local_header_of_file)[0])
+                    extract_file_based_on_header_info(apk_file, offset, local_header_of_file, cd_h_of_file)[0])
                 manifest = get_manifest(extracted_data)
                 with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
                     xml_file.write(manifest)
