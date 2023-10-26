@@ -80,16 +80,13 @@ class ApkInspectorTestCase(unittest.TestCase):
         test_dir = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(test_dir, 'res', 'minimal_SIZE_ExtraField.apk'), 'rb') as apk_file:
             cd_h_of_file, local_header_of_file = headers_of_filename(apk_file, "AndroidManifest.xml")
-            ext_hash = 'ebaa19b0f993d159053b5a47a98819a0c373eabaa877c3b67d23b6b00a46184d'
+            ext_hash = '5f37db22380177c20804d8602ffbdc048caeaa851412ab127e6fe1c9a9b1c78e'
             androidManifest_extracted = \
-                extract_file_based_on_header_info(self.apk_orig, 0, local_header_of_file, cd_h_of_file)[0]
+                extract_file_based_on_header_info(apk_file, 0, local_header_of_file, cd_h_of_file)[0]
             self.assertEqual(hashlib.sha256(androidManifest_extracted).hexdigest(), ext_hash)
 
     def test_android_manifest_decoding_orig(self):
-        offset = 151552
-        central_directory_entries_orig = parse_central_directory(self.apk_orig, offset)
-        cd_h_of_file, local_header_of_file = headers_of_filename(self.apk_orig,
-                                                                 "AndroidManifest.xml", central_directory_entries_orig)
+        cd_h_of_file, local_header_of_file = headers_of_filename(self.apk_orig, "AndroidManifest.xml")
         offset = cd_h_of_file["Relative offset of local file header"]
         extracted_data = io.BytesIO(
             extract_file_based_on_header_info(self.apk_orig, offset, local_header_of_file, cd_h_of_file)[0])
@@ -98,10 +95,7 @@ class ApkInspectorTestCase(unittest.TestCase):
         self.assertEqual(hashlib.sha256(str(manifest).encode('utf-8')).hexdigest(), manifest_orig)
 
     def test_android_manifest_decoding_mod(self):
-        offset = 151552
-        central_directory_entries_mod = parse_central_directory(self.apk_mod, offset)
-        cd_h_of_file, local_header_of_file = headers_of_filename(self.apk_mod,
-                                                                 "AndroidManifest.xml", central_directory_entries_mod)
+        cd_h_of_file, local_header_of_file = headers_of_filename(self.apk_mod, "AndroidManifest.xml")
         offset = cd_h_of_file["Relative offset of local file header"]
         extracted_data = io.BytesIO(
             extract_file_based_on_header_info(self.apk_mod, offset, local_header_of_file, cd_h_of_file)[0])
@@ -111,14 +105,21 @@ class ApkInspectorTestCase(unittest.TestCase):
 
     def test_tampering_indicators(self):
         orig_val = {'zip tampering': {}, 'manifest tampering': {}}
-        mod_val = {'zip tampering': {
-            'AndroidManifest.xml': {'central compression method': 30208, 'local compression method': 30208,
-                                    'actual compression method': 'STORED_TAMPERED'}},
-            'manifest tampering': {'file_type': 0, 'string_pool': {'string count': 49, 'real string count': 32}}}
+        mod_val = {'zip tampering': {'AndroidManifest.xml': {'central compression method': 30208, 'local compression '
+                                                                                                  'method': 30208,
+                                                             'actual compression method': 'STORED_TAMPERED'}},
+                   'manifest tampering': {'file_type': 0, 'string_pool': {'string count': 49, 'real string count': 32}}}
         orig = apk_tampering_check(self.apk_orig)
         mod = apk_tampering_check(self.apk_mod)
         self.assertEqual(orig, orig_val)
         self.assertEqual(mod, mod_val)
+
+    def test_tampering_indicators_size(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        expected = {'zip tampering': {'AndroidManifest.xml': {'differing headers': ['Compressed size', 'Uncompressed size']}}, 'manifest tampering': {}}
+        with open(os.path.join(test_dir, 'res', 'minimal_SIZE_ExtraField.apk'), 'rb') as apk_file:
+            res = apk_tampering_check(apk_file)
+            self.assertEqual(res, expected)
 
 
 if __name__ == '__main__':

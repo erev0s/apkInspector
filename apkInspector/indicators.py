@@ -42,10 +42,25 @@ def zip_tampering_indicators(apk_file):
                 extract_file_based_on_header_info(apk_file, cd_entry["Relative offset of local file header"], lh_entry, cd_entry)[
                     1]
             temp['actual compression method'] = indicator
+        df_keys = local_and_central_header_discrepancies(cd_entry, lh_entry)
+        if df_keys:
+            temp['differing headers'] = df_keys
         if not temp:
             continue
         zip_tampering_indicators_dict[key] = temp
     return zip_tampering_indicators_dict
+
+
+def local_and_central_header_discrepancies(dict1, dict2):
+    common_keys = set(dict1.keys()) & set(dict2.keys())
+    differences = {key: (dict1[key], dict2[key]) for key in common_keys if dict1[key] != dict2[key]}
+    # Display the keys with differing values
+    keys = []
+    for key, values in dict(sorted(differences.items())).items():
+        if key in ['Extra Field', 'Extra field length']:    # excluding these as they differ often
+            continue
+        keys.append(key)
+    return keys
 
 
 def manifest_tampering_indicators(manifest):
