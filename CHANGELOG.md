@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 29-10-2023
+ - Extraction to use local header unless something is off
+ - Added test case apk with tampered size and ExtraField
+ - Indicators inconsistencies between local and central header
+ - Restructure of the headers module
+
 ## [1.1.1] - 24-10-2023
  - Updated extraction process to use the CD header instead of the local one
 

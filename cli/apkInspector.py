@@ -4,8 +4,7 @@ import os
 
 from apkInspector import __version__ as version
 from apkInspector.extract import extract_file_based_on_header_info, extract_all_files_from_central_directory
-from apkInspector.headers import find_eocd, parse_central_directory, headers_of_filename, print_headers_of_filename, \
-    get_and_save_local_headers_of_all, show_and_save_info_of_central
+from apkInspector.headers import print_headers_of_filename, ZipEntry, show_and_save_info_of_headers
 from apkInspector.helpers import save_data_to_file, pretty_print_header
 from apkInspector.indicators import apk_tampering_check
 from apkInspector.axml import get_manifest
@@ -71,57 +70,48 @@ def main():
     if args.apk:
         apk_name = os.path.splitext(args.apk)[0]
         with open(args.apk, 'rb') as apk_file:
-            eocd = find_eocd(apk_file)
-            if eocd is None:
-                print("Are you sure you are trying to parse an APK file?")
-                return
-            central_directory_entries = parse_central_directory(apk_file, eocd["Offset of start of central directory"])
-
+            zipentry = ZipEntry.parse(apk_file)
             if args.filename and args.extract:
-                try:
-                    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file,
-                                                                             args.filename, central_directory_entries)
-                except TypeError as e:
-                    print(f"Are you sure the filename: {args.filename} exists?")
-                    exit()
-                offset = cd_h_of_file["Relative offset of local file header"]
+                cd_h_of_file = zipentry.get_central_directory_entry_dict(args.filename)
+                if cd_h_of_file is None:
+                    print(f"It appears that file: {args.filename} is not among the entries of the central directory!")
+                    return
+                local_header_of_file = zipentry.get_local_header_dict(args.filename)
                 print_headers_of_filename(cd_h_of_file, local_header_of_file)
-                extracted_data = extract_file_based_on_header_info(apk_file, offset, local_header_of_file, cd_h_of_file)[0]
+                extracted_data = extract_file_based_on_header_info(apk_file, local_header_of_file, cd_h_of_file)[0]
                 save_data_to_file(f"EXTRACTED_{args.filename}", extracted_data)
             elif args.filename:
-                try:
-                    cd_h_of_file, local_header_of_file = headers_of_filename(apk_file,
-                                                                             args.filename, central_directory_entries)
-                except TypeError as e:
-                    print(f"Are you sure the filename: {args.filename} exists?")
-                    exit()
+                cd_h_of_file = zipentry.get_central_directory_entry_dict(args.filename)
+                if cd_h_of_file is None:
+                    print(f"It appears that file: {args.filename} is not among the entries of the central directory!")
+                    return
+                local_header_of_file = zipentry.get_local_header_dict(args.filename)
                 print_headers_of_filename(cd_h_of_file, local_header_of_file)
             elif args.extract_all:
-                print(f"Number of entries: {len(central_directory_entries)}")
-                if not extract_all_files_from_central_directory(apk_file, central_directory_entries, apk_name):
+                print(f"Number of entries: {len(zipentry.central_directory.entries)}")
+                if not extract_all_files_from_central_directory(apk_file, zipentry.to_dict()["central_directory"], zipentry.to_dict()["local_headers"], apk_name):
                     print(f"Extraction successful for: {apk_name}")
             elif args.list_local:
-                get_and_save_local_headers_of_all(apk_file, central_directory_entries, apk_name, args.export, True)
+                show_and_save_info_of_headers(zipentry.to_dict()["local_headers"], apk_name, "local", args.export, True)
                 print(f"Local headers list complete. Export: {args.export}")
             elif args.list_central:
-                show_and_save_info_of_central(central_directory_entries, apk_name, args.export, True)
+                show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "local", args.export, True)
                 print(f"Central header list complete. Export: {args.export}")
             elif args.list_all:
-                show_and_save_info_of_central(central_directory_entries, apk_name, args.export, True)
-                get_and_save_local_headers_of_all(apk_file, central_directory_entries, apk_name, args.export, True)
+                show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "local", args.export, True)
+                show_and_save_info_of_headers(zipentry.to_dict()["local_headers"], apk_name, "local", args.export, True)
                 print(f"Central and local headers list complete. Export: {args.export}")
             elif args.manifest:
-                cd_h_of_file, local_header_of_file = headers_of_filename(apk_file,
-                                                                         "AndroidManifest.xml", central_directory_entries)
-                offset = cd_h_of_file["Relative offset of local file header"]
+                cd_h_of_file = zipentry.get_central_directory_entry_dict("AndroidManifest.xml")
+                local_header_of_file = zipentry.get_local_header_dict("AndroidManifest.xml")
                 extracted_data = io.BytesIO(
-                    extract_file_based_on_header_info(apk_file, offset, local_header_of_file, cd_h_of_file)[0])
+                    extract_file_based_on_header_info(apk_file, local_header_of_file, cd_h_of_file)[0])
                 manifest = get_manifest(extracted_data)
                 with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
                     xml_file.write(manifest)
                 print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
             elif args.analyze:
-                tamperings = apk_tampering_check(apk_file)
+                tamperings = apk_tampering_check(apk_file, False)
                 if tamperings['zip tampering']:
                     print(
                         f"\n{len(tamperings['zip tampering'])} file(s) listed below appear to have a tampered zip structure!\n")
