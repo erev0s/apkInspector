@@ -1,6 +1,8 @@
 import logging
 import struct
 
+from .helpers import escape_xml_entities
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d -> %(funcName)s : %(message)s'
@@ -254,7 +256,16 @@ class XmlAttributeElement:
         self.typed_value_data = typed_value_data
 
     @classmethod
-    def parse(cls, file, attr_count, attr_size):
+    def parse(cls, file, attr_count):
+        """
+        The method is responsible to parse and retrieve the attributes of an element based on the attribute count.
+        There are many datatypes that are not read according to the specification (at least for now), but that does
+        not affect the main goal of the tool, therefore it is not a priority. For the presentation of the values another
+        check is occurring in the process_attributes method.
+        :param file: The raw manifest file being parsed
+        :param attr_count: The attribute count value part of XmlStartElement.attrext
+        :return: List of attributes
+        """
         attrs = []
         for _ in range(0, attr_count):
             full_namespace_index = struct.unpack('<I', file.read(4))[0]
@@ -263,7 +274,14 @@ class XmlAttributeElement:
             typed_value_size = struct.unpack('<H', file.read(2))[0]
             typed_value_res0 = struct.unpack('<B', file.read(1))[0]
             typed_value_datatype = struct.unpack('<B', file.read(1))[0]
-            typed_value_data = struct.unpack('<I', file.read(4))[0]
+            if typed_value_datatype == 4:
+                typed_value_data = round(struct.unpack('<f', file.read(4))[0], 1)
+            elif typed_value_datatype == 5:
+                typed_value_data = struct.unpack('<I', file.read(4))[0]
+            elif typed_value_datatype == 16:
+                typed_value_data = struct.unpack('<i', file.read(4))[0]
+            else:
+                typed_value_data = struct.unpack('<I', file.read(4))[0]
             attrs.append(cls(full_namespace_index, name_index, raw_value_index, typed_value_size, typed_value_res0,
                              typed_value_datatype, typed_value_data))
         return attrs
@@ -287,7 +305,7 @@ class XmlStartElement:
 
         attrext = [full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index,
                    style_index]
-        attributes = XmlAttributeElement.parse(file, attr_count, attr_size)
+        attributes = XmlAttributeElement.parse(file, attr_count)
         return cls(header.type, header.header_size, header.total_size, attrext, attributes)
 
 
@@ -337,6 +355,7 @@ class ManifestStruct:
     """
     A class to represent the AndroidManifest as a composition
     """
+
     def __init__(self, header: ResChunkHeader, string_pool: StringPoolType, resource_map: XmlResourceMapType, elements):
         self.header = header
         self.string_pool = string_pool
@@ -377,11 +396,11 @@ def process_cdata(file, chunk_header: ResChunkHeader):
 
 
 chunk_type_handlers = {
-    '0x100': process_xml_start_namespace,   # RES_XML_START_NAMESPACE_TYPE
-    '0x101': process_xml_end_namespace,     # RES_XML_END_NAMESPACE_TYPE
-    '0x102': process_xml_start_element,     # RES_XML_START_ELEMENT_TYPE
-    '0x103': process_xml_end_element,       # RES_XML_END_ELEMENT_TYPE
-    '0x104': process_cdata,                 # RES_XML_CDATA_TYPE
+    '0x100': process_xml_start_namespace,  # RES_XML_START_NAMESPACE_TYPE
+    '0x101': process_xml_end_namespace,  # RES_XML_END_NAMESPACE_TYPE
+    '0x102': process_xml_start_element,  # RES_XML_START_ELEMENT_TYPE
+    '0x103': process_xml_end_element,  # RES_XML_END_ELEMENT_TYPE
+    '0x104': process_cdata,  # RES_XML_CDATA_TYPE
 }
 
 
@@ -434,7 +453,7 @@ def process_elements(file):
 
 def process_attributes(attributes, string_data, ns_dict):
     """
-    Helps in processing the attributes found in each element of the axml
+    Helps in processing the representation of attributes found in each element of the axml
     :param attributes: the attributes of an XmlStartElement object
     :param string_data: the string data list from the String Pool
     :param ns_dict: a namespace dictionary based on the XmlStartNamespace elements found
@@ -447,19 +466,18 @@ def process_attributes(attributes, string_data, ns_dict):
             value = f"@{attr.typed_value_data}"
         elif attr.typed_value_datatype == 3:  # string type
             try:
-                value = string_data[attr.typed_value_data]
+                value = escape_xml_entities(string_data[attr.typed_value_data])
             except:
                 value = attr.typed_value_data
-        elif attr.typed_value_datatype == 16:  # integer type
-            value = str(attr.typed_value_data)
         elif attr.typed_value_datatype == 17:  # int-hex type
-            value = f"{attr.typed_value_data} ({hex(attr.typed_value_data)})"
+            value = "0x{:08X}".format(attr.typed_value_data)
         elif attr.typed_value_datatype == 18:  # boolean type
             value = "true" if bool(attr.typed_value_data) else "false"
         elif attr.typed_value_datatype == 0:  # null, used for CData
             return name
         else:
-            logging.error(f"An unknown datatype came up: {attr.typed_value_datatype}")
+            # TODO: Not accurate enough, but serves the purpose for now
+            value = str(attr.typed_value_data)
         if attr.full_namespace_index < len(string_data):
             namespace = string_data[attr.full_namespace_index]
             attribute_list.append(f'{ns_dict[namespace]}:{name}="{value}"')
@@ -472,9 +490,9 @@ def process_attributes(attributes, string_data, ns_dict):
 def create_manifest(elements, string_data):
     """
 
-    :param elements:
-    :param string_data:
-    :return:
+    :param elements: The parsed elements as returned by process_elements()
+    :param string_data: The string pool data
+    :return: The AndroidManifest.xml as a string
     """
     android_manifest_xml = []
     namespaces = []
