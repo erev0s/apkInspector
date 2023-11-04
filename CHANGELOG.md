@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.3] - 04-11-2023
+ - Fixed a bug related to datatypes and how they were processed
+
 ## [1.1.2] - 29-10-2023
  - Extraction to use local header unless something is off
  - Added test case apk with tampered size and ExtraField

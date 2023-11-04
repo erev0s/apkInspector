@@ -35,3 +35,19 @@ def save_to_json(filename, dictionary):
     """
     with open(filename, "w") as h_file:
         json.dump(dictionary, h_file, indent=4)
+
+
+def escape_xml_entities(data):
+    """
+    Escaping characters that cant be included within an XML file
+    :param data: The string to escape
+    :return: The escaped output
+    """
+    replacements = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;',
+        "'": '&apos;'
+    }
+    return ''.join(replacements.get(c, c) for c in data)
