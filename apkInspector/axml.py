@@ -165,10 +165,13 @@ class StringPoolType:
         string_offsets = cls.read_string_offsets(file, num_of_strings, string_pool_header.strings_start + 8)
         is_utf8 = bool(string_pool_header.flags & (1 << 8))
         string_data = cls.read_strings(file, string_offsets, string_pool_header.strings_start, is_utf8)
-        file.read(2)  # the +2 is to account for the null bytes after the last strPool element
-        cur_pos = file.tell()
-        if file.read(2) == b'\x80\x01':
+        while True:  # read any null bytes remaining
+            cur_pos = file.tell()
+            if file.read(2) == b'\x80\x01':
+                file.seek(cur_pos)
+                break
             file.seek(cur_pos)
+            file.read(1)
         return cls(
             string_pool_header.header.type,
             string_pool_header.header.header_size,
@@ -462,6 +465,9 @@ def process_attributes(attributes, string_data, ns_dict):
     attribute_list = []
     for attr in attributes:
         name = string_data[attr.name_index]
+        if not name:  # It happens that the attr.name_index points to an empty string in StringPool and you have to use
+            # the public.xml. It falls outside the scope of the tool, so I am not going to solve it for now.
+            name = 'Unknown_Attribute_Name'
         if attr.typed_value_datatype == 1:  # reference type
             value = f"@{attr.typed_value_data}"
         elif attr.typed_value_datatype == 3:  # string type
@@ -476,11 +482,16 @@ def process_attributes(attributes, string_data, ns_dict):
         elif attr.typed_value_datatype == 0:  # null, used for CData
             return name
         else:
-            # TODO: Not accurate enough, but serves the purpose for now
+            # TODO: Not accurate enough, values should be represented based on which datatype. Good enough for now
             value = str(attr.typed_value_data)
         if attr.full_namespace_index < len(string_data):
             namespace = string_data[attr.full_namespace_index]
-            attribute_list.append(f'{ns_dict[namespace]}:{name}="{value}"')
+            if not namespace:  # Same as with the empty name, points to an empty string in StringPool.
+                namespace = 'android'
+            try:
+                attribute_list.append(f'{ns_dict[namespace]}:{name}="{value}"')
+            except:
+                attribute_list.append(f'{namespace.split("/")[-1]}:{name}="{value}"')
         else:
             attribute_list.append(f'{name}="{value}"')
 
@@ -495,17 +506,27 @@ def create_manifest(elements, string_data):
     :return: The AndroidManifest.xml as a string
     """
     android_manifest_xml = []
-    namespaces = []
+    namespaces = {}
     ns_dict = {}
-
+    ns_declared = []
     for element in elements:
         if isinstance(element, XmlStartNamespace):
-            namespaces.append(f'xmlns:{string_data[element.ext[0]]}="{string_data[element.ext[1]]}"')
+            namespaces[
+                string_data[element.ext[0]]] = f'xmlns:{string_data[element.ext[0]]}="{string_data[element.ext[1]]}"'
             ns_dict[string_data[element.ext[1]]] = string_data[element.ext[0]]
         elif isinstance(element, XmlStartElement):
             attributes = process_attributes(element.attributes, string_data, ns_dict)
-            if string_data[element.attrext[1]] == 'manifest':
-                tag_line = f"<{string_data[element.attrext[1]]} {' '.join(namespaces)} {attributes}>\n" if attributes else f"<{string_data[element.attrext[1]]}>\n"
+            attr_ns_list = set(ns.split(':')[0] for ns in attributes.split(' ') if ':' in ns)
+            tmp_ns = []  # TODO Somewhat hacky way to add namespaces/ Maybe improve in future depending on needs
+            for vl in attr_ns_list:
+                if vl not in ns_declared:
+                    if vl in namespaces:
+                        tmp_ns.append(namespaces[vl])
+                    elif vl == 'android':
+                        tmp_ns.append(f'xmlns:android="http://schemas.android.com/apk/res/android"')
+                    ns_declared.append(vl)
+            if tmp_ns:
+                tag_line = f"<{string_data[element.attrext[1]]} {' '.join(tmp_ns)} {attributes}>\n" if attributes else f"<{string_data[element.attrext[1]]}>\n"
             else:
                 tag_line = f"<{string_data[element.attrext[1]]} {attributes}>\n" if attributes else f"<{string_data[element.attrext[1]]}>\n"
             android_manifest_xml.append(tag_line)
