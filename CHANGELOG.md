@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.4] - 07-11-2023
+ - Support for AndroidManifest.xml cases when an empty Namespace, a Namespace without the XmlStartNamespace first or multiple Namespaces in different lines occur.
+ - Handling for empty attribute names in AndroidManifest.xml. Rare cases when the public.xml is required to get the actual name.
+ - Fixed bug with finding the starting bytes for XMLResourceMap
+
 ## [1.1.3] - 04-11-2023
  - Fixed a bug related to datatypes and how they were processed
 
