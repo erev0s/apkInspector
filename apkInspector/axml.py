@@ -1,6 +1,9 @@
+import io
 import logging
 import struct
 
+from .extract import extract_file_based_on_header_info
+from .headers import ZipEntry
 from .helpers import escape_xml_entities
 
 logging.basicConfig(
@@ -548,3 +551,18 @@ def get_manifest(raw_manifest):
     """
     manifest_object = ManifestStruct.parse(raw_manifest)
     return manifest_object.get_manifest()
+
+
+def parse_apk_for_manifest(apk_file, save: bool = False):
+    with open(apk_file, 'rb') as apk:
+        zipentry = ZipEntry.parse(apk)
+        cd_h_of_file = zipentry.get_central_directory_entry_dict("AndroidManifest.xml")
+        local_header_of_file = zipentry.get_local_header_dict("AndroidManifest.xml")
+        extracted_data = io.BytesIO(
+            extract_file_based_on_header_info(apk, local_header_of_file, cd_h_of_file)[0])
+    manifest = get_manifest(extracted_data)
+    if save:
+        with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
+            xml_file.write(manifest)
+        print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
+    return manifest

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.5] - 11-11-2023
+ - Added method in axml module to be able to directly pass the apk path.
+ - Added method in extract module to be able to directly pass the apk path.
+
 ## [1.1.4] - 07-11-2023
  - Support for AndroidManifest.xml cases when an empty Namespace, a Namespace without the XmlStartNamespace first or multiple Namespaces in different lines occur.
  - Handling for empty attribute names in AndroidManifest.xml. Rare cases when the public.xml is required to get the actual name.
