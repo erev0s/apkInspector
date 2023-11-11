@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.6] - 11-11-2023
+ - Added test for top apps from Play Store
+ - Added random integer for unknown attributes
+
 ## [1.1.5] - 11-11-2023
  - Added method in axml module to be able to directly pass the apk path.
  - Added method in extract module to be able to directly pass the apk path.

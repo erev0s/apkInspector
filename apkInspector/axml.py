@@ -1,6 +1,7 @@
 import io
 import logging
 import struct
+import random
 
 from .extract import extract_file_based_on_header_info
 from .headers import ZipEntry
@@ -470,7 +471,7 @@ def process_attributes(attributes, string_data, ns_dict):
         name = string_data[attr.name_index]
         if not name:  # It happens that the attr.name_index points to an empty string in StringPool and you have to use
             # the public.xml. It falls outside the scope of the tool, so I am not going to solve it for now.
-            name = 'Unknown_Attribute_Name'
+            name = f'Unknown_Attribute_Name_{random.randint(1000, 9999)}'
         if attr.typed_value_datatype == 1:  # reference type
             value = f"@{attr.typed_value_data}"
         elif attr.typed_value_datatype == 3:  # string type
