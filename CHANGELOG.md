@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.7] - 18-11-2023
+ - Added certain method for the ZipEntry class for convenience
+ - Improved axml bypassing dummy values in between elements
+
 ## [1.1.6] - 11-11-2023
  - Added test for top apps from Play Store
  - Added random integer for unknown attributes

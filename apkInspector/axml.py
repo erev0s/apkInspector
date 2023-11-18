@@ -440,21 +440,22 @@ def process_elements(file):
     """
     elements = []
     dummy = 0
-    possible_headers = {b'\x00\x01', b'\x01\x01', b'\x02\x01', b'\x03\x01', b'\x04\x01'}
+    possible_types = {256, 257, 258, 259, 260}
+    min_size = 8
     while True:
-        # Parse the next header
         cur_pos = file.tell()
-        check = file.read(2)
-        file.seek(cur_pos)
-        if not check:
-            # End of file
+        if file.getbuffer().nbytes < cur_pos + min_size:
+            # we reached the end of the file
             break
-        if check not in possible_headers:
-            file.read(1)
-            dummy = 1
+        _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
+        file.seek(cur_pos)
+        if cur_pos == 0 or (
+                _type in possible_types and _header_size >= min_size and _size > min_size):
+            chunk_type = parse_next_header(file)
+            elements.append(chunk_type)
             continue
-        chunk_type = parse_next_header(file)
-        elements.append(chunk_type)
+        file.read(1)
+        dummy = 1
     return elements, dummy
 
 
