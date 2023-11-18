@@ -1,6 +1,10 @@
+import io
+import os
 import struct
 from typing import Dict
-from .helpers import pretty_print_header, save_to_json
+
+from .extract import extract_file_based_on_header_info, extract_all_files_from_central_directory
+from .helpers import pretty_print_header, save_to_json, save_data_to_file
 
 
 class EndOfCentralDirectoryRecord:
@@ -296,28 +300,36 @@ class LocalHeaderRecord:
 
 
 class ZipEntry:
-    def __init__(self, eocd: EndOfCentralDirectoryRecord, central_directory: CentralDirectory, local_headers: Dict[str, LocalHeaderRecord]):
+    def __init__(self, zip_bytes, eocd: EndOfCentralDirectoryRecord, central_directory: CentralDirectory,
+                 local_headers: Dict[str, LocalHeaderRecord]):
+        self.zip = zip_bytes
         self.eocd = eocd
         self.central_directory = central_directory
         self.local_headers = local_headers
 
     @classmethod
-    def parse(cls, apk_file):
+    def parse(cls, inc_apk, raw: bool = True):
+        if raw:
+            apk_file = inc_apk
+        else:
+            with open(inc_apk, 'rb') as apk:
+                apk_file = io.BytesIO(apk.read())
         eocd = EndOfCentralDirectoryRecord.parse(apk_file)
         central_directory = CentralDirectory.parse(apk_file, eocd)
         local_headers = {}
         for entry in central_directory.entries:
             local_header_entry = LocalHeaderRecord.parse(apk_file, central_directory.entries[entry])
             local_headers[local_header_entry.filename] = local_header_entry
-        return cls(eocd, central_directory, local_headers)
+        return cls(apk_file, eocd, central_directory, local_headers)
 
     @classmethod
-    def parse_single(cls, apk_file, filename, eocd: EndOfCentralDirectoryRecord = None, central_directory: CentralDirectory = None):
+    def parse_single(cls, apk_file, filename, eocd: EndOfCentralDirectoryRecord = None,
+                     central_directory: CentralDirectory = None):
         if not eocd or not central_directory:
             eocd = EndOfCentralDirectoryRecord.parse(apk_file)
             central_directory = CentralDirectory.parse(apk_file, eocd)
         local_header = {filename: LocalHeaderRecord.parse(apk_file, central_directory.entries[filename])}
-        return cls(eocd, central_directory, local_header)
+        return cls(apk_file, eocd, central_directory, local_header)
 
     def to_dict(self):
         return {
@@ -337,6 +349,30 @@ class ZipEntry:
             return self.local_headers[filename].to_dict()
         else:
             return None
+
+    def read(self, name, save: bool = False):
+        """
+        Return file bytes for name.
+        :param name: Filename to return bytes for
+        """
+        extracted_file = extract_file_based_on_header_info(self.zip, self.get_local_header_dict(name),
+                                                           self.get_central_directory_entry_dict(name))[0]
+        if save:
+            save_data_to_file(f"EXTRACTED_{name}", extracted_file)
+        return extracted_file
+
+    def infolist(self) -> Dict[str, CentralDirectoryEntry]:
+        return self.central_directory.entries
+
+    def namelist(self):
+        """Return a list of file names in the archive."""
+        return [vl for vl in self.central_directory.to_dict()]
+
+    def extract_all(self, extract_path, apk_name):
+        output_path = os.path.join(extract_path, apk_name)
+        if not extract_all_files_from_central_directory(self.zip, self.to_dict()["central_directory"],
+                                                        self.to_dict()["local_headers"], output_path):
+            print(f"Extraction successful for: {apk_name}")
 
 
 def print_headers_of_filename(cd_h_of_file, local_header_of_file):
@@ -374,4 +410,3 @@ def show_and_save_info_of_headers(entries, apk_name, header_type: str, export: b
             print(entries[entry])
     if export:
         save_to_json(f"{apk_name}_{header_type}_header.json", entries)
-
