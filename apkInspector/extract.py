@@ -1,9 +1,6 @@
 import zlib
 import os
 
-from .headers import ZipEntry
-from .helpers import save_data_to_file
-
 
 def extract_file_based_on_header_info(apk_file, local_header_info, central_directory_info):
     """
@@ -84,27 +81,3 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
     except Exception as e:
         print(f"Error extracting files: {e}")
         return 1
-
-
-def extract_single_file(apk_file, filename, save: bool = False):
-    with open(apk_file, 'rb') as apk:
-        zipentry = ZipEntry.parse(apk)
-        cd_h_of_file = zipentry.get_central_directory_entry_dict(filename)
-        if cd_h_of_file is None:
-            print(f"It appears that file: {filename} is not among the entries of the central directory!")
-            return
-        local_header_of_file = zipentry.get_local_header_dict(filename)
-        extracted_data = extract_file_based_on_header_info(apk, local_header_of_file, cd_h_of_file)[0]
-        if save:
-            save_data_to_file(f"EXTRACTED_{filename}", extracted_data)
-        return extracted_data
-
-
-def extract_all(apk_file, extract_path):
-    apk_name = os.path.splitext(apk_file)[0]
-    output_path = os.path.join(extract_path, apk_name)
-    with open(apk_file, 'rb') as apk:
-        zipentry = ZipEntry.parse(apk)
-        if not extract_all_files_from_central_directory(apk, zipentry.to_dict()["central_directory"],
-                                                        zipentry.to_dict()["local_headers"], output_path):
-            print(f"Extraction successful for: {apk_name}")
