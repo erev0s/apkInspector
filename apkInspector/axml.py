@@ -28,9 +28,12 @@ class ResChunkHeader:
     @classmethod
     def parse(cls, file):
         """
-        Read the header type (2 bytes), header size (2 bytes), and entry size (4 bytes)
-        :param file: the xml file e.g. with open('/path/AndroidManifest.xml', 'rb') as file:
+        Read the header type (2 bytes), header size (2 bytes), and entry size (4 bytes).
+
+        :param file: the xml file e.g. with open('/path/AndroidManifest.xml', 'rb') as file
+        :type file: io.TextIOWrapper
         :return: Returns an instance of itself
+        :rtype: ResChunkHeader
         """
         header_data = file.read(8)
         if len(header_data) < 8:
@@ -42,9 +45,7 @@ class ResChunkHeader:
 
 class ResStringPoolHeader:
     """
-    It reads the string pool header which contains information about the StringCount etc.
-    It is a common practice to have a stringCount value that does not reflect the actual strings in place. Android
-    itself does not take into account the stringCount when getting the string offsets and the string data!
+    It reads the string pool header which contains information about the StringPool.
     """
 
     def __init__(self, header_type, header_size, total_size, string_count, style_count, flags, strings_start,
@@ -59,9 +60,12 @@ class ResStringPoolHeader:
     @classmethod
     def parse(cls, file):
         """
-        Read and parse ResStringPoolHeader from the file
+        Read and parse ResStringPoolHeader from the file.
+
         :param file: the xml file right after the header has been read.
+        :type file: io.TextIOWrapper
         :return: Returns an instance of itself
+        :rtype: ResStringPoolHeader
         """
         header = ResChunkHeader.parse(file)
         string_pool_header_data = file.read(20)
@@ -72,7 +76,7 @@ class ResStringPoolHeader:
 
 class StringPoolType:
     """
-    The stringPool class which contains the header defined before: ResStringPoolHeader
+    The stringPool class which is a composition of the ResStringPoolHeader
     along with the string offsets and the string data.
     """
 
@@ -87,13 +91,16 @@ class StringPoolType:
     @classmethod
     def read_string_offsets(cls, file, num_of_strings, end_absolute_offset):
         """
-        Reads the offsets available for each string. The important thing to notice is that the number of strings being
-        passed as a parameter should not be the stringCount retrieved from the string pool header, it should be
-        calculated!
+        Reads the offset available for each string. Requires to know the number of strings available beforehand.
+
         :param file: the xml file right after the string pool header has been read.
+        :type file: io.TextIOWrapper
         :param num_of_strings: the calculated number of strings available
+        :type num_of_strings: int
         :param end_absolute_offset: the absolute value of the offset where the offsets finish.
+        :type end_absolute_offset: int
         :return: Returns a list of strings offsets.
+        :rtype: list
         """
         string_offsets = []
         for i in range(0, num_of_strings):
@@ -108,9 +115,13 @@ class StringPoolType:
     def decode_stringpool_mixed_string(cls, file, is_utf8):
         """
         Handling the different encoding possibilities that can be met.
+
         :param file: the xml file at the offset where the string is to be read
+        :type file: io.TextIOWrapper
         :param is_utf8: boolean to check if a utf8 string is expected
+        :type is_utf8: bool
         :return: Returns the decoded string
+        :rtype: str
         """
         if not is_utf8:
             # Handle UTF-16 encoded strings
@@ -135,12 +146,18 @@ class StringPoolType:
     @classmethod
     def read_strings(cls, file, string_offsets, strings_start, is_utf8):
         """
-        Gets the actual strings based on the offsets retrieved from read_string_offsets()
+        Gets the actual strings based on the offsets retrieved from read_string_offsets().
+
         :param file: the xml file right after the string pool offsets have been read
+        :type file: io.TextIOWrapper
         :param string_offsets: see -> read_string_offsets()
-        :param strings_start:
-        :param is_utf8: the offset at which the string data starts
+        :type string_offsets: list
+        :param strings_start: the offset at which the string data starts
+        :type strings_start: int
+        :param is_utf8: boolean to check if a utf8 string is expected
+        :type is_utf8: bool
         :return: Returns a list of the string data
+        :rtype: list
         """
         strings = []
         for offset in string_offsets:
@@ -156,9 +173,12 @@ class StringPoolType:
     @classmethod
     def parse(cls, file):
         """
-        Handle the string pool
+        Parse the string pool to acquire the strings used within the axml.
+
         :param file: the xml file right after the file header is read
+        :type file: io.TextIOWrapper
         :return: Returns an instance of itself
+        :rtype: StringPoolType
         """
         string_pool_header = ResStringPoolHeader.parse(file)
         size_of_strings_offsets = string_pool_header.strings_start - 28
@@ -192,7 +212,7 @@ class StringPoolType:
 
 class XmlResourceMapType:
     """
-    Resource map class, with the header and the resource IDs
+    Resource map class, with the header and the resource IDs.
     """
 
     def __init__(self, header_type, header_size, total_size, resids):
@@ -202,9 +222,12 @@ class XmlResourceMapType:
     @classmethod
     def parse(cls, file):
         """
-        Parse the resourse map and get the resource IDs
+        Parse the resource map and get the resource IDs.
+
         :param file: the xml file right after the string pool is read
+        :type file: io.TextIOWrapper
         :return: Returns an instance of itself
+        :rtype: XmlResourceMapType
         """
         header = ResChunkHeader.parse(file)
         num_resids = (header.total_size - header.header_size) // 4
@@ -224,6 +247,15 @@ class XmlStartNamespace:
 
     @classmethod
     def parse(cls, file, header: ResChunkHeader):
+        """
+        Parse the starting element of a Namespace
+        :param file: the axml already pointing at the right offset
+        :type file: io.TextIOWrapper
+        :param header: the already read header of the chunk
+        :type header: ResChunkHeader
+        :return: an instance of itself
+        :rtype: XmlStartNamespace
+        """
         num_exts = (header.total_size - header.header_size) // 4
         ext = [struct.unpack('<I', file.read(4))[0] for _ in range(num_exts)]
         return cls(header.type, header.header_size, header.total_size, ext)
@@ -231,7 +263,7 @@ class XmlStartNamespace:
 
 class XmlEndNamespace:
     """
-    Indicator for the end of the xml file.
+    Class to represent the end of a Namespace.
     """
 
     def __init__(self, header_type, header_size, total_size, prefix_namespace_index, uri_index):
@@ -241,6 +273,16 @@ class XmlEndNamespace:
 
     @classmethod
     def parse(cls, file, header: ResChunkHeader):
+        """
+        Parse the ending element of a Namespace.
+
+        :param file: the axml already pointing at the right offset
+        :type file: io.TextIOWrapper
+        :param header: the already read header of the chunk
+        :type header: ResChunkHeader
+        :return: an instance of itself
+        :rtype: XmlEndNamespace
+        """
         prefix_namespace_index = struct.unpack('<I', file.read(4))[0]
         uri_index = struct.unpack('<I', file.read(4))[0]
 
@@ -249,7 +291,7 @@ class XmlEndNamespace:
 
 class XmlAttributeElement:
     """
-    The attributes within each element within the xml, should be described by this class
+    The attributes within each element within the axml, should be described by this class.
     """
 
     def __init__(self, full_namespace_index, name_index, raw_value_index, typed_value_size, typed_value_res0,
@@ -269,9 +311,13 @@ class XmlAttributeElement:
         There are many datatypes that are not read according to the specification (at least for now), but that does
         not affect the main goal of the tool, therefore it is not a priority. For the presentation of the values another
         check is occurring in the process_attributes method.
-        :param file: The raw manifest file being parsed
+
+        :param file: the axml already pointing at the right offset
+        :type file: io.TextIOWrapper
         :param attr_count: The attribute count value part of XmlStartElement.attrext
+        :type attr_count: int
         :return: List of attributes
+        :rtype: list
         """
         attrs = []
         for _ in range(0, attr_count):
@@ -296,7 +342,7 @@ class XmlAttributeElement:
 
 class XmlStartElement:
     """
-    The starting point of an element, its attributes are described by XmlAttributeElement
+    The starting point of an element, its attributes are described by XmlAttributeElement.
     The attrext contains information about the element including the attribute count.
     """
 
@@ -307,6 +353,16 @@ class XmlStartElement:
 
     @classmethod
     def parse(cls, file, header: ResChunkHeader):
+        """
+        Parse the current element
+
+        :param file: the axml already pointing at the right offset
+        :type file: io.TextIOWrapper
+        :param header: the already read header of the chunk
+        :type header: ResChunkHeader
+        :return: an instance of itself
+        :rtype: XmlStartElement
+        """
         full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index, style_index = struct.unpack(
             '<IIHHHHHH', file.read(20))
 
@@ -327,6 +383,16 @@ class XmlEndElement:
 
     @classmethod
     def parse(cls, file, header: ResChunkHeader):
+        """
+        Parse the end of an element.
+
+        :param file: the axml already pointing at the right offset
+        :type file: io.TextIOWrapper
+        :param header: the already read header of the chunk
+        :type header: ResChunkHeader
+        :return: an instance of itself
+        :rtype: XmlEndElement
+        """
         full_namespace_index, name_index = struct.unpack('<II', file.read(8))
         attrext = [full_namespace_index, name_index]
         return cls(header.type, header.header_size, header.total_size, attrext)
@@ -334,7 +400,7 @@ class XmlEndElement:
 
 class XmlcDataElement:
     """
-    A CDATA section
+    A class to cover any CDATA section
     https://developer.android.com/reference/org/w3c/dom/CDATASection
     """
 
@@ -349,6 +415,16 @@ class XmlcDataElement:
 
     @classmethod
     def parse(cls, file, header: ResChunkHeader):
+        """
+        Parse the CDATA element.
+
+        :param file: the axml already pointing at the right offset
+        :type file: io.TextIOWrapper
+        :param header: the already read header of the chunk
+        :type header: ResChunkHeader
+        :return: an instance of itself
+        :rtype: XmlcDataElement
+        """
         data_index = struct.unpack('<I', file.read(4))
         typed_value_size = struct.unpack('<H', file.read(2))[0]
         typed_value_res0 = struct.unpack('<B', file.read(1))[0]
@@ -370,11 +446,25 @@ class ManifestStruct:
         self.elements = elements
 
     def get_manifest(self):
+        """
+        Method to return the AndroidManifest created from this instance
+
+        :return: The AndroidManifest.xml as a string
+        :rtype: str
+        """
         manifest = create_manifest(self.elements, self.string_pool.strdata)
         return manifest
 
     @classmethod
     def parse(cls, file):
+        """
+        A composition of the rest of the classes available in the apkInspector.axml module, to form the AndroidManifest structure.
+
+        :param file: the axml that will be processed
+        :type file: io.TextIOWrapper
+        :return: an instance of itself
+        :rtype: ManifestStruct
+        """
         header = ResChunkHeader.parse(file)
         string_pool = StringPoolType.parse(file)
         resource_map = XmlResourceMapType.parse(file)
@@ -382,32 +472,12 @@ class ManifestStruct:
         return cls(header, string_pool, resource_map, elements)
 
 
-def process_xml_start_namespace(file, chunk_header: ResChunkHeader):
-    return XmlStartNamespace.parse(file, chunk_header)
-
-
-def process_xml_end_namespace(file, chunk_header: ResChunkHeader):
-    return XmlEndNamespace.parse(file, chunk_header)
-
-
-def process_xml_start_element(file, chunk_header: ResChunkHeader):
-    return XmlStartElement.parse(file, chunk_header)
-
-
-def process_xml_end_element(file, chunk_header: ResChunkHeader):
-    return XmlEndElement.parse(file, chunk_header)
-
-
-def process_cdata(file, chunk_header: ResChunkHeader):
-    return XmlcDataElement.parse(file, chunk_header)
-
-
 chunk_type_handlers = {
-    '0x100': process_xml_start_namespace,  # RES_XML_START_NAMESPACE_TYPE
-    '0x101': process_xml_end_namespace,  # RES_XML_END_NAMESPACE_TYPE
-    '0x102': process_xml_start_element,  # RES_XML_START_ELEMENT_TYPE
-    '0x103': process_xml_end_element,  # RES_XML_END_ELEMENT_TYPE
-    '0x104': process_cdata,  # RES_XML_CDATA_TYPE
+    '0x100': XmlStartNamespace.parse,   # RES_XML_START_NAMESPACE_TYPE
+    '0x101': XmlEndNamespace.parse,     # RES_XML_END_NAMESPACE_TYPE
+    '0x102': XmlStartElement.parse,     # RES_XML_START_ELEMENT_TYPE
+    '0x103': XmlEndElement.parse,       # RES_XML_END_ELEMENT_TYPE
+    '0x104': XmlcDataElement.parse,     # RES_XML_CDATA_TYPE
 }
 
 
@@ -416,7 +486,10 @@ def parse_next_header(file):
     Dispatcher method to parse the next available header. It takes into account to move on past the header if it
     contains extra info besides the standard ones.
     The dispatcher automatically picks the correct processing method for each chunk type.
-    :param file: the xml file that is being read
+
+    :param file: the axml that will be processed
+    :type file: io.TextIOWrapper
+    :raises NotImplementedError: The chunk type identified is not supported
     :return: Dispatches to the appropriate processing method for each chunk type.
     """
     chunk_header = ResChunkHeader.parse(file)
@@ -434,9 +507,14 @@ def parse_next_header(file):
 
 def process_elements(file):
     """
-    It starts processing the remaining chunks after the resource map chunk.
-    :param file: the xml file read right after the resource map chunk
-    :return: Returns all the elements found as their corresponding classes and whether dummy data were found in between
+    It starts processing the remaining chunks **after** the resource map chunk.
+    It also returns whether dummy data have been found between the elements, so it can be reported that the apk employed
+    this evasion technique.
+
+    :param file: the axml that will be processed
+    :type file: io.TextIOWrapper
+    :return: Returns all the elements found as their corresponding classes and whether dummy data were found in between.
+    :rtype: set(list, int)
     """
     elements = []
     dummy = 0
@@ -461,11 +539,17 @@ def process_elements(file):
 
 def process_attributes(attributes, string_data, ns_dict):
     """
-    Helps in processing the representation of attributes found in each element of the axml
-    :param attributes: the attributes of an XmlStartElement object
+    Helps in processing the representation of attributes found in each element of the axml. It should be noted that not
+    all datatypes are taken into account, meaning that the values of certain attributes might not be represented properly.
+
+    :param attributes: the attributes of an XmlStartElement object as returned by XmlAttributeElement.parse()
+    :type attributes: list
     :param string_data: the string data list from the String Pool
+    :type string_data: list
     :param ns_dict: a namespace dictionary based on the XmlStartNamespace elements found
+    :type ns_dict: dict
     :return: returns a string of all the attributes with their values
+    :rtype: str
     """
     attribute_list = []
     for attr in attributes:
@@ -505,10 +589,14 @@ def process_attributes(attributes, string_data, ns_dict):
 
 def create_manifest(elements, string_data):
     """
+    Method to create the AndroidManifest.xml file based on the elements discovered from the processed APK
 
-    :param elements: The parsed elements as returned by process_elements()
+    :param elements: The parsed elements as returned by process_elements()[0]
+    :type elements: list
     :param string_data: The string pool data
+    :type string_data: list
     :return: The AndroidManifest.xml as a string
+    :rtype: str
     """
     android_manifest_xml = []
     namespaces = {}
@@ -522,7 +610,7 @@ def create_manifest(elements, string_data):
         elif isinstance(element, XmlStartElement):
             attributes = process_attributes(element.attributes, string_data, ns_dict)
             attr_ns_list = set(ns.split(':')[0] for ns in attributes.split(' ') if ':' in ns)
-            tmp_ns = []  # TODO Somewhat hacky way to add namespaces/ Maybe improve in future depending on needs
+            tmp_ns = []  # TODO: Somewhat hacky way to add namespaces/ Maybe improve in future depending on needs
             for vl in attr_ns_list:
                 if vl not in ns_declared:
                     if vl in namespaces:
@@ -547,15 +635,28 @@ def create_manifest(elements, string_data):
 
 def get_manifest(raw_manifest):
     """
-    Method to directly return the AndroidManifest file as created by create_manifest()
+    Helper method to directly return the AndroidManifest file as created by create_manifest()
+
     :param raw_manifest: expects the encoded AndroidManifest.xml file as a file-like object
+    :type raw_manifest: io.TextIOWrapper
     :return: returns the decoded AndroidManifest file
+    :rtype: str
     """
     manifest_object = ManifestStruct.parse(raw_manifest)
     return manifest_object.get_manifest()
 
 
 def parse_apk_for_manifest(apk_file, save: bool = False):
+    """
+    Helper method to retrieve the AndroidManifest.xml directly from an APK path
+
+    :param apk_file: The path of the APK file
+    :type apk_file: str
+    :param save: Boolean parameter to define whether to save the manifest or not
+    :type save: bool
+    :return: Returns the AndroidManifest.xml as string
+    :rtype: str
+    """
     with open(apk_file, 'rb') as apk:
         zipentry = ZipEntry.parse(apk)
         cd_h_of_file = zipentry.get_central_directory_entry_dict("AndroidManifest.xml")

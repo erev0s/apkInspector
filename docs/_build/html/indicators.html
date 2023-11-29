@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Indicators Module &mdash; apkInspector  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Extract Module" href="extract.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            apkInspector
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="headers.html">Headers Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="axml.html">AXML Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="extract.html">Extract Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Indicators Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#apkInspector.indicators.apk_tampering_check"><code class="docutils literal notranslate"><span class="pre">apk_tampering_check()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#apkInspector.indicators.count_eocd"><code class="docutils literal notranslate"><span class="pre">count_eocd()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#apkInspector.indicators.local_and_central_header_discrepancies"><code class="docutils literal notranslate"><span class="pre">local_and_central_header_discrepancies()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#apkInspector.indicators.manifest_tampering_indicators"><code class="docutils literal notranslate"><span class="pre">manifest_tampering_indicators()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#apkInspector.indicators.zip_tampering_indicators"><code class="docutils literal notranslate"><span class="pre">zip_tampering_indicators()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">apkInspector</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Indicators Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/indicators.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-apkInspector.indicators">
+<span id="indicators-module"></span><h1>Indicators Module<a class="headerlink" href="#module-apkInspector.indicators" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="apkInspector.indicators.apk_tampering_check">
+<span class="sig-prename descclassname"><span class="pre">apkInspector.indicators.</span></span><span class="sig-name descname"><span class="pre">apk_tampering_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">apk_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#apkInspector.indicators.apk_tampering_check" title="Link to this definition"></a></dt>
+<dd><p>Method to combine the check for tampering in the zip structure and in the AndroidManifest and return the results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The apk file to check</p></li>
+<li><p><strong>strict</strong> (<em>bool</em>) – A boolean to strictly check all fields or not. Suggested value: False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a combined dictionary with the results from the zip_tampering_indicators and the manifest_tampering_indicators</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="apkInspector.indicators.count_eocd">
+<span class="sig-prename descclassname"><span class="pre">apkInspector.indicators.</span></span><span class="sig-name descname"><span class="pre">count_eocd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">apk_file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#apkInspector.indicators.count_eocd" title="Link to this definition"></a></dt>
+<dd><p>Counter for the number of time the end of central directory record was found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The count of how many times the end of central directory record was found</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="apkInspector.indicators.local_and_central_header_discrepancies">
+<span class="sig-prename descclassname"><span class="pre">apkInspector.indicators.</span></span><span class="sig-name descname"><span class="pre">local_and_central_header_discrepancies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dict1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#apkInspector.indicators.local_and_central_header_discrepancies" title="Link to this definition"></a></dt>
+<dd><p>Checking discrepancies between local header values and central directory values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dict1</strong> (<em>dict</em>) – the central directory dictionary</p></li>
+<li><p><strong>dict2</strong> (<em>dict</em>) – the local headers dictionary</p></li>
+<li><p><strong>strict</strong> (<em>bool</em>) – Boolean for strict checking the headers or not</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a list with the common keys between the dictionaries that have different values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="apkInspector.indicators.manifest_tampering_indicators">
+<span class="sig-prename descclassname"><span class="pre">apkInspector.indicators.</span></span><span class="sig-name descname"><span class="pre">manifest_tampering_indicators</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manifest</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#apkInspector.indicators.manifest_tampering_indicators" title="Link to this definition"></a></dt>
+<dd><p>Method to check for indicators of tampering in the AndroidManifest.xml</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>manifest</strong> (<em>io.TextIOWrapper</em>) – The AndroidManifest file to check</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a dictionary with the indicators of tampering for the AndroidManifest</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="apkInspector.indicators.zip_tampering_indicators">
+<span class="sig-prename descclassname"><span class="pre">apkInspector.indicators.</span></span><span class="sig-name descname"><span class="pre">zip_tampering_indicators</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">apk_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#apkInspector.indicators.zip_tampering_indicators" title="Link to this definition"></a></dt>
+<dd><p>Method to check the for indicators of tampering in the ZIP structure of the APK. These tamperings in the ZIP
+structure, serve as a method of evasion against static analysis tools.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
+<li><p><strong>strict</strong> (<em>bool</em>) – Whether to be checking strictly or not. Utilizing the application set that was used also for the tests here <a class="reference external" href="https://github.com/erev0s/apkInspector/tree/main/tests/top_apps">https://github.com/erev0s/apkInspector/tree/main/tests/top_apps</a>, we tested what kind of indicators would be returned. It turns out that in some cases the local header and the central directory entry for the same file do not have the same values for some keys. So the strict checking was added, to be able to exclude these rare but possible occasions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a dictionary with the detected indicators.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="extract.html" class="btn btn-neutral float-left" title="Extract Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, erev0s.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
