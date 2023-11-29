@@ -8,6 +8,9 @@ from .helpers import pretty_print_header, save_to_json, save_data_to_file
 
 
 class EndOfCentralDirectoryRecord:
+    """
+    A class to provide details about the end of central directory record.
+    """
     def __init__(self, signature, number_of_this_disk, disk_where_central_directory_starts,
                  number_of_central_directory_records_on_this_disk,
                  total_number_of_central_directory_records, size_of_central_directory,
@@ -29,9 +32,11 @@ class EndOfCentralDirectoryRecord:
         reading a ZIP archive. Should be noted that certain APKs do not follow the zip specification and declare multiple
         "end of central directory records". For this reason the search for the corresponding signature of the eocd starts
         from the end of the apk.
+
         :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
-        :return: Returns the end of central directory record with all the information available if the corresponding
-        signature is found. If not, then it returns None.
+        :type apk_file: io.TextIOWrapper
+        :return: Returns the end of central directory record with all the information available if the corresponding signature is found. If not, then it returns None.
+        :rtype: EndOfCentralDirectoryRecord or None
         """
         chunk_size = 1024
         offset = 0
@@ -76,6 +81,12 @@ class EndOfCentralDirectoryRecord:
         )
 
     def to_dict(self):
+        """
+        Represent the class as a dictionary.
+
+        :return: returns the dictionary
+        :rtype: dict
+        """
         return {
             "signature": self.signature,
             "number_of_this_disk": self.number_of_this_disk,
@@ -90,10 +101,21 @@ class EndOfCentralDirectoryRecord:
 
     @classmethod
     def from_dict(cls, entry_dict):
+        """
+        Convert a dictionary back to an instance of the class.
+
+        :param entry_dict: the dictionary
+        :type entry_dict: dict
+        :return: the instance of the class
+        :rtype: EndOfCentralDirectoryRecord
+        """
         return cls(**entry_dict)
 
 
 class CentralDirectoryEntry:
+    """
+    A class representing each entry in the central directory.
+    """
     def __init__(self, version_made_by, version_needed_to_extract, general_purpose_bit_flag,
                  compression_method, file_last_modification_time, file_last_modification_date,
                  crc32_of_uncompressed_data, compressed_size, uncompressed_size, file_name_length,
@@ -122,6 +144,12 @@ class CentralDirectoryEntry:
         self.offset_in_central_directory = offset_in_central_directory
 
     def to_dict(self):
+        """
+        Represent the class as a dictionary.
+
+        :return: returns the dictionary
+        :rtype: dict
+        """
         return {
             "version_made_by": self.version_made_by,
             "version_needed_to_extract": self.version_needed_to_extract,
@@ -147,10 +175,22 @@ class CentralDirectoryEntry:
 
     @classmethod
     def from_dict(cls, entry_dict):
+        """
+        Convert a dictionary back to an instance of the class.
+
+        :param entry_dict: the dictionary
+        :type entry_dict: dict
+        :return: the instance of the class
+        :rtype: CentralDirectoryEntry
+        """
         return cls(**entry_dict)
 
 
 class CentralDirectory:
+    """
+    The CentralDirectory containing all the CentralDirectoryEntry entries discovered.
+    The entries are listed as a dictionary where the filename is the key.
+    """
     def __init__(self, entries):
         self.entries = entries
 
@@ -159,14 +199,14 @@ class CentralDirectory:
         """
         Method that is used to parse the central directory header according to the specification
         https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.3.9.TXT
-        based on the offset provided by the end of central directory record: eocd["Offset of start of central directory"].
-        If multiple central directory headers are discovered this will not be handled properly!
+        based on the offset provided by the end of central directory record: eocd.offset_of_start_of_central_directory.
 
         :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
+        :type apk_file: io.TextIOWrapper
         :param eocd: End of central directory record
-        :return: Returns a dictionary with all the entries discovered. The filename of each entry is used as the key. Besides
-        the fields defined by the specification, each entry has an additional field named 'Offset in the central directory header',
-        which includes the offset of the entry in the central directory itself.
+        :type eocd: EndOfCentralDirectoryRecord
+        :return: Returns a dictionary with all the entries discovered. The filename of each entry is used as the key. Besides the fields defined by the specification, each entry has an additional field named 'Offset in the central directory header', which includes the offset of the entry in the central directory itself.
+        :rtype: CentralDirectory
         """
         if not eocd:
             eocd = EndOfCentralDirectoryRecord.parse(apk_file)
@@ -216,14 +256,31 @@ class CentralDirectory:
         return cls(central_directory_entries)
 
     def to_dict(self):
+        """
+        Represent the class as a dictionary.
+
+        :return: returns the dictionary
+        :rtype: dict
+        """
         return {filename: entry.to_dict() for filename, entry in self.entries.items()}
 
     @classmethod
     def from_dict(cls, entry_dict):
+        """
+        Convert a dictionary back to an instance of the class.
+
+        :param entry_dict: the dictionary
+        :type entry_dict: dict
+        :return: the instance of the class
+        :rtype: CentralDirectory
+        """
         return cls(**entry_dict)
 
 
 class LocalHeaderRecord:
+    """
+    The local header for each entry discovered.
+    """
     def __init__(self, version_needed_to_extract, general_purpose_bit_flag,
                  compression_method, file_last_modification_time, file_last_modification_date,
                  crc32_of_uncompressed_data, compressed_size, uncompressed_size, file_name_length,
@@ -245,12 +302,14 @@ class LocalHeaderRecord:
     @classmethod
     def parse(cls, apk_file, entry_of_interest: CentralDirectoryEntry):
         """
-        Method that attempts to read the local file header according to the specification
-        https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.3.9.TXT
+        Method that attempts to read the local file header according to the specification https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.3.9.TXT.
 
         :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
+        :type apk_file: io.TextIOWrapper
         :param entry_of_interest: The central directory header of the specific entry of interest
+        :type entry_of_interest: CentralDirectoryEntry
         :return: Returns a dictionary with the local header information or None if it failed to find the header.
+        :rtype: LocalHeaderRecord or None
         """
         apk_file.seek(entry_of_interest.relative_offset_of_local_file_header)
         header_signature = apk_file.read(4)
@@ -279,6 +338,12 @@ class LocalHeaderRecord:
             filename, extra_field)
 
     def to_dict(self):
+        """
+        Represent the class as a dictionary.
+
+        :return: returns the dictionary
+        :rtype: dict
+        """
         return {
             "version_needed_to_extract": self.version_needed_to_extract,
             "general_purpose_bit_flag": self.general_purpose_bit_flag,
@@ -296,10 +361,21 @@ class LocalHeaderRecord:
 
     @classmethod
     def from_dict(cls, entry_dict):
+        """
+        Convert a dictionary back to an instance of the class.
+
+        :param entry_dict: the dictionary
+        :type entry_dict: dict
+        :return: the instance of the class
+        :rtype: LocalHeaderRecord
+        """
         return cls(**entry_dict)
 
 
 class ZipEntry:
+    """
+    Is the actual APK represented as a composition of the previous classes, which are: the EndOfCentralDirectoryRecord, the CentralDirectory and a dictionary of values of LocalHeaderRecord.
+    """
     def __init__(self, zip_bytes, eocd: EndOfCentralDirectoryRecord, central_directory: CentralDirectory,
                  local_headers: Dict[str, LocalHeaderRecord]):
         self.zip = zip_bytes
@@ -309,6 +385,16 @@ class ZipEntry:
 
     @classmethod
     def parse(cls, inc_apk, raw: bool = True):
+        """
+        Method to start processing an APK. The raw (bytes) APK may be passed or the path to it.
+
+        :param inc_apk: the incoming apk, either path or bytes
+        :type inc_apk: str or io.TextIOWrapper
+        :param raw: boolean flag to specify whether it is the raw apk in bytes or not
+        :type raw: bool
+        :return: returns the instance of the class
+        :rtype: ZipEntry
+        """
         if raw:
             apk_file = inc_apk
         else:
@@ -325,6 +411,20 @@ class ZipEntry:
     @classmethod
     def parse_single(cls, apk_file, filename, eocd: EndOfCentralDirectoryRecord = None,
                      central_directory: CentralDirectory = None):
+        """
+        Similar to parse, but instead of parsing the entire APK, it only targets the specified file.
+
+        :param apk_file: The apk file expected raw
+        :type apk_file: io.TextIOWrapper
+        :param filename: the filename of the file to be parsed
+        :type filename: str
+        :param eocd: Optionally, the instance of the end of central directory from the APK
+        :type eocd: EndOfCentralDirectoryRecord(, optional)
+        :param central_directory: Optionally, the instance of the central directory record
+        :type central_directory: CentralDirectory(, optional)
+        :return: returns the instance of the class
+        :rtype: ZipEntry
+        """
         if not eocd or not central_directory:
             eocd = EndOfCentralDirectoryRecord.parse(apk_file)
             central_directory = CentralDirectory.parse(apk_file, eocd)
@@ -332,6 +432,12 @@ class ZipEntry:
         return cls(apk_file, eocd, central_directory, local_header)
 
     def to_dict(self):
+        """
+        Represent the class as a dictionary.
+
+        :return: returns the dictionary
+        :rtype: dict
+        """
         return {
             "end_of_central_directory": self.eocd.to_dict(),
             "central_directory": self.central_directory.to_dict(),
@@ -339,12 +445,28 @@ class ZipEntry:
         }
 
     def get_central_directory_entry_dict(self, filename):
+        """
+        Method to retrieve the central directory entry for a specific filename.
+
+        :param filename: the filename of the file to search for in the central directory
+        :type filename: str
+        :return: returns a dictionary of the central directory entry or None if the filename is not found
+        :rtype: dict or None
+        """
         if filename in self.central_directory.entries:
             return self.central_directory.entries[filename].to_dict()
         else:
             return None
 
     def get_local_header_dict(self, filename):
+        """
+        Method to retrieve the local header of a specific filename.
+
+        :param filename: the filename of the entry to search for among the local headers
+        :type filename: str
+        :return: returns a ditionary of the local header entry or None if the filename is not found
+        :rtype: dict or None
+        """
         if filename in self.local_headers:
             return self.local_headers[filename].to_dict()
         else:
@@ -352,8 +474,14 @@ class ZipEntry:
 
     def read(self, name, save: bool = False):
         """
-        Return file bytes for name.
-        :param name: Filename to return bytes for
+        Method to utilize the extract module and extract a single entry from the APK based on the filename.
+
+        :param name: the name of the file to be read/extracted
+        :type name: str
+        :param save: boolean to define whether the extracted file should be saved as well or not
+        :type save: bool(, optional)
+        :return: returns the raw bytes of the filename that was extracted
+        :rtype: bytes
         """
         extracted_file = extract_file_based_on_header_info(self.zip, self.get_local_header_dict(name),
                                                            self.get_central_directory_entry_dict(name))[0]
@@ -362,13 +490,32 @@ class ZipEntry:
         return extracted_file
 
     def infolist(self) -> Dict[str, CentralDirectoryEntry]:
+        """
+        List of information about the entries in the central directory.
+
+        :return: returns a dictionary where the keys are the filenames and the values are each an instance of the CentralDirectoryEntry
+        :rtype: dict
+        """
         return self.central_directory.entries
 
     def namelist(self):
-        """Return a list of file names in the archive."""
+        """
+        List of the filenames included in the central directory.
+
+        :return: returns the list of the filenames
+        :rtype: list
+        """
         return [vl for vl in self.central_directory.to_dict()]
 
     def extract_all(self, extract_path, apk_name):
+        """
+        Extracts all the contents of the APK.
+
+        :param extract_path: where to extract it
+        :type extract_path: str
+        :param apk_name: the name of the apk
+        :type apk_name: str
+        """
         output_path = os.path.join(extract_path, apk_name)
         if not extract_all_files_from_central_directory(self.zip, self.to_dict()["central_directory"],
                                                         self.to_dict()["local_headers"], output_path):
@@ -377,9 +524,12 @@ class ZipEntry:
 
 def print_headers_of_filename(cd_h_of_file, local_header_of_file):
     """
-    Prints out the details for both the central directory header and the local file header. Useful for the CLI
+    Prints out the details for both the central directory header and the local file header. Useful for the CLI.
+
     :param cd_h_of_file: central directory header of a filename as it may be retrieved from headers_of_filename
+    :type cd_h_of_file: dict
     :param local_header_of_file: local header dictionary of a filename as it may be retrieved from headers_of_filename
+    :type local_header_of_file: dict
     """
     if not cd_h_of_file or not local_header_of_file:
         print("Are you sure the filename exists?")
@@ -397,12 +547,18 @@ def print_headers_of_filename(cd_h_of_file, local_header_of_file):
 
 def show_and_save_info_of_headers(entries, apk_name, header_type: str, export: bool, show: bool):
     """
-    Print information for each entry for the central directory header and allow to possibly export to JSON
-    :param entries: The dictionary with all the entries for the central directory (see parse_central_directory)
+    Print information for each entry for the central directory header and allow to possibly export to JSON.
+
+    :param entries: The dictionary with all the entries for the central directory
+    :type entries: dict
     :param apk_name: String with the name of the APK, so it can be used for the export.
-    :param header_type: What type of header that is, either central_directory or local
+    :type apk_name: str
+    :param header_type: What type of header that is, either central_directory or local, to be used for the export
+    :type header_type: str
     :param export: Boolean for exporting or not to JSON
+    :type export: bool
     :param show: Boolean for printing or not the entries
+    :type show: bool
     """
     if show:
         for entry in entries:

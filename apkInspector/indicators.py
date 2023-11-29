@@ -7,9 +7,12 @@ from .axml import ResChunkHeader, StringPoolType, process_elements, XmlResourceM
 
 def count_eocd(apk_file):
     """
+    Counter for the number of time the end of central directory record was found.
 
-    :param apk_file:
-    :return:
+    :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
+    :type apk_file: io.TextIOWrapper
+    :return: The count of how many times the end of central directory record was found
+    :rtype: int
     """
     content = apk_file.read()
     return content.count(b'\x50\x4b\x05\x06')
@@ -17,9 +20,15 @@ def count_eocd(apk_file):
 
 def zip_tampering_indicators(apk_file, strict: bool):
     """
+    Method to check the for indicators of tampering in the ZIP structure of the APK. These tamperings in the ZIP
+    structure, serve as a method of evasion against static analysis tools.
 
-    :param apk_file:
-    :return:
+    :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
+    :type apk_file: io.TextIOWrapper
+    :param strict: Whether to be checking strictly or not. Utilizing the application set that was used also for the tests here https://github.com/erev0s/apkInspector/tree/main/tests/top_apps, we tested what kind of indicators would be returned. It turns out that in some cases the local header and the central directory entry for the same file do not have the same values for some keys. So the strict checking was added, to be able to exclude these rare but possible occasions.
+    :type strict: bool
+    :return: Returns a dictionary with the detected indicators.
+    :rtype: dict
     """
     zip_tampering_indicators_dict = {}
     count = count_eocd(apk_file)
@@ -50,6 +59,18 @@ def zip_tampering_indicators(apk_file, strict: bool):
 
 
 def local_and_central_header_discrepancies(dict1, dict2, strict: bool):
+    """
+    Checking discrepancies between local header values and central directory values
+
+    :param dict1: the central directory dictionary
+    :type dict1: dict
+    :param dict2: the local headers dictionary
+    :type dict2: dict
+    :param strict: Boolean for strict checking the headers or not
+    :type strict: bool
+    :return: Returns a list with the common keys between the dictionaries that have different values.
+    :rtype: list
+    """
     common_keys = set(dict1.keys()) & set(dict2.keys())
     differences = {key: (dict1[key], dict2[key]) for key in common_keys if dict1[key] != dict2[key]}
     # Display the keys with differing values
@@ -64,9 +85,12 @@ def local_and_central_header_discrepancies(dict1, dict2, strict: bool):
 
 def manifest_tampering_indicators(manifest):
     """
+    Method to check for indicators of tampering in the AndroidManifest.xml
 
-    :param manifest:
-    :return:
+    :param manifest: The AndroidManifest file to check
+    :type manifest: io.TextIOWrapper
+    :return: Returns a dictionary with the indicators of tampering for the AndroidManifest
+    :rtype: dict
     """
     chunkHeader = ResChunkHeader.parse(manifest)
     manifest_tampering_indicators_dict = {}
@@ -90,9 +114,14 @@ def manifest_tampering_indicators(manifest):
 
 def apk_tampering_check(apk_file, strict: bool):
     """
+    Method to combine the check for tampering in the zip structure and in the AndroidManifest and return the results.
 
-    :param apk_file:
-    :return:
+    :param apk_file: The apk file to check
+    :type apk_file: io.TextIOWrapper
+    :param strict: A boolean to strictly check all fields or not. Suggested value: False
+    :type strict: bool
+    :return: Returns a combined dictionary with the results from the zip_tampering_indicators and the manifest_tampering_indicators
+    :rtype: dict
     """
     zip_tampering_indicators_dict = zip_tampering_indicators(apk_file, strict)
     zipentry = ZipEntry.parse(apk_file)

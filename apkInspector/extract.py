@@ -5,12 +5,19 @@ import os
 def extract_file_based_on_header_info(apk_file, local_header_info, central_directory_info):
     """
     Extracts a single file from the apk_file based on the information provided from the offset and the header_info.
-    It takes into account that the compression method provided might not be STORED or DEFLATED and in that case
-    it attempts to inflate it (Android < 9) and if that fails it considers it as STORED (Android >= 9).
-    :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
-    :param local_header_info: The local header dictionary info for that specific filename (parse_local_header)
-    :param central_directory_info:
-    :return: Returns the actual extracted data for that file
+    It takes into account that the compression method provided might not be STORED or DEFLATED! The returned
+    'indicator', shows what compression method was used. Besides the standard STORED/DEFLATE it may return
+    'DEFLATED_TAMPERED', which means that the compression method found was not DEFLATED(8) but it should have been,
+    and 'STORED_TAMPERED' which means that the compression method found was not STORED(0) but should have been.
+
+    :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
+    :type apk_file: io.TextIOWrapper
+    :param local_header_info: The local header dictionary info for that specific filename
+    :type local_header_info: dict
+    :param central_directory_info: The central directory entry for that specific filename
+    :type central_directory_info: dict
+    :return: Returns the actual extracted data for that file along with an indication of whether a static analysis evasion technique was used or not.
+    :rtype: set(bytes, str)
     """
     filename_length = local_header_info["file_name_length"]
     if local_header_info["compressed_size"] == 0 or local_header_info["uncompressed_size"] == 0:
@@ -52,11 +59,17 @@ def extract_file_based_on_header_info(apk_file, local_header_info, central_direc
 def extract_all_files_from_central_directory(apk_file, central_directory_entries, local_header_entries, output_dir):
     """
     Extracts all files from an APK based on the entries detected in the central_directory_entries.
-    :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
+
+    :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
+    :type apk_file: io.TextIOWrapper
     :param central_directory_entries: The dictionary with all the entries for the central directory
+    :type central_directory_entries: dict
     :param local_header_entries: The dictionary with all the local header entries
+    :type local_header_entries: dict
     :param output_dir: The output directory where to save the files.
+    :type output_dir: str
     :return: Returns 0 if no errors, 1 if an exception and 2 if the output directory already exists
+    :rtype: int
     """
     try:
         # Check if the output directory already exists
