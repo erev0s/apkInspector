@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.8] - 09-12-2023
+ - Multiple updates on the documentation https://erev0s.github.io/apkInspector/
+ - Returning KeyError instead of None, when an entry is not there for local headers or central directory
+ - Added more tests for better test coverage
+ - Added tests.yml to have a check for the tests for any new PR
+
 ## [1.1.7] - 18-11-2023
  - Added certain method for the ZipEntry class for convenience
  - Improved axml bypassing dummy values in between elements
