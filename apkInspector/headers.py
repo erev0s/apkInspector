@@ -274,7 +274,11 @@ class CentralDirectory:
         :return: the instance of the class
         :rtype: CentralDirectory
         """
-        return cls(**entry_dict)
+        entries = {}
+        for filename, entry_data in entry_dict.items():
+            entry_instance = CentralDirectoryEntry.from_dict(entry_data)
+            entries[filename] = entry_instance
+        return cls(entries=entries)
 
 
 class LocalHeaderRecord:
