@@ -451,12 +451,12 @@ class ZipEntry:
         :param filename: the filename of the file to search for in the central directory
         :type filename: str
         :return: returns a dictionary of the central directory entry or None if the filename is not found
-        :rtype: dict or None
+        :rtype: dict
         """
         if filename in self.central_directory.entries:
             return self.central_directory.entries[filename].to_dict()
         else:
-            return None
+            raise KeyError(f"Key: {filename} was not found within the central directory entries!")
 
     def get_local_header_dict(self, filename):
         """
@@ -465,12 +465,12 @@ class ZipEntry:
         :param filename: the filename of the entry to search for among the local headers
         :type filename: str
         :return: returns a ditionary of the local header entry or None if the filename is not found
-        :rtype: dict or None
+        :rtype: dict
         """
         if filename in self.local_headers:
             return self.local_headers[filename].to_dict()
         else:
-            return None
+            raise KeyError(f"Key: {filename} was not found within the local headers list!")
 
     def read(self, name, save: bool = False):
         """
