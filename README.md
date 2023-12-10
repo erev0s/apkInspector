@@ -1,5 +1,5 @@
 ![apkInspector](https://i.imgur.com/hTzyIDG.png) 
-![PyPI - Version](https://img.shields.io/pypi/v/apkInspector)[![CI](https://github.com/erev0s/apkInspector/actions/workflows/ci.yml/badge.svg)](https://github.com/erev0s/apkInspector/actions/workflows/ci.yml)
+![PyPI - Version](https://img.shields.io/pypi/v/apkInspector)  [![CI](https://github.com/erev0s/apkInspector/actions/workflows/ci.yml/badge.svg)](https://github.com/erev0s/apkInspector/actions/workflows/ci.yml)  [![codecov](https://codecov.io/gh/erev0s/apkInspector/graph/badge.svg?token=A3YXHGXUXF)](https://codecov.io/gh/erev0s/apkInspector)
 # apkInspector
 apkInspector is a tool designed to provide detailed insights into the zip structure of APK files, offering the capability to extract content and decode the AndroidManifest.xml file. What sets APKInspector apart is its adherence to the zip specification during APK parsing, eliminating the need for reliance on external libraries. This independence, allows APKInspector to be highly adaptable, effectively emulating Android's installation process for APKs that cannot be parsed using standard libraries. The main goal is to enable users to conduct static analysis on APKs that employ evasion techniques, especially when conventional methods prove ineffective.
 
@@ -16,6 +16,9 @@ cd apkInspector
 poetry build
 pip install dist/apkInspector-Version_here.tar.gz
 ~~~~
+
+## Documentation
+Documentation created based on the docstrings is available through Sphinx https://erev0s.github.io/apkInspector/
 
 ## CLI
 apkInspector offers a command line tool with the same name, with the following options;
@@ -67,7 +70,7 @@ The library component of apkInspector is designed with extensibility in mind, al
 The command-line interface (CLI) serves as a practical illustration of how the methods provided by the library have been employed.
 
 ## Planned todo
- - Proper documentation
+ - Improve documentation
  - Improve code coverage
 
 ## Disclaimer
