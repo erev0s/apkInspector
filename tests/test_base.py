@@ -224,6 +224,13 @@ class ApkInspectorTestCase(unittest.TestCase):
             res = apk_tampering_check(apk_file, True)
             self.assertEqual(res, expected)
 
+    def test_inconsistencies_in_central_local_entries(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(test_dir, 'res', 'truncated-cd.apk'), "rb") as apk_file:
+            res = apk_tampering_check(apk_file, False)
+            self.assertIn('classes.dex', res['zip tampering']['unique_entries'])
+            self.assertIn('classes.deP', res['zip tampering']['unique_entries'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -36,7 +36,11 @@ def zip_tampering_indicators(apk_file, strict: bool):
         zip_tampering_indicators_dict['eocd_count'] = count
     zipentry_dict = ZipEntry.parse(apk_file).to_dict()
 
-    for key in zipentry_dict["central_directory"]:
+    unique_keys = list(zipentry_dict["central_directory"].keys() ^ zipentry_dict["local_headers"].keys())
+    common_keys = list(set(zipentry_dict["central_directory"].keys()) & set(zipentry_dict["local_headers"].keys()))
+    if unique_keys:
+        zip_tampering_indicators_dict['unique_entries'] = unique_keys
+    for key in common_keys:
         cd_entry = zipentry_dict["central_directory"][key]
         lh_entry = zipentry_dict["local_headers"][key]
         temp = {}
