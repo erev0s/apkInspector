@@ -3,6 +3,8 @@
 # apkInspector
 apkInspector is a tool designed to provide detailed insights into the zip structure of APK files, offering the capability to extract content and decode the AndroidManifest.xml file. What sets APKInspector apart is its adherence to the zip specification during APK parsing, eliminating the need for reliance on external libraries. This independence, allows APKInspector to be highly adaptable, effectively emulating Android's installation process for APKs that cannot be parsed using standard libraries. The main goal is to enable users to conduct static analysis on APKs that employ evasion techniques, especially when conventional methods prove ineffective.
 
+Please check [this blog post](https://erev0s.com/blog/unmasking-evasive-threats-with-apkinspector/) for more details.
+
 ## How to install
 [apkInspector is available through PyPI](https://pypi.org/project/apkInspector/)
 ~~~~
@@ -18,7 +20,9 @@ pip install dist/apkInspector-Version_here.tar.gz
 ~~~~
 
 ## Documentation
-Documentation created based on the docstrings is available through Sphinx https://erev0s.github.io/apkInspector/
+Documentation created based on the docstrings, is available through Sphinx:  
+https://erev0s.github.io/apkInspector/
+
 
 ## CLI
 apkInspector offers a command line tool with the same name, with the following options;
@@ -68,6 +72,9 @@ The library component of apkInspector is designed with extensibility in mind, al
 
 
 The command-line interface (CLI) serves as a practical illustration of how the methods provided by the library have been employed.
+
+## Reliability
+Please take [a look at the results](https://github.com/erev0s/apkInspector/tree/main/tests/top_apps) from testing apkInspector against a set of top Play Store applications
 
 ## Planned todo
  - Improve documentation
