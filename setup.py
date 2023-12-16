@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='apkInspector',
-    version='1.1.8',
+    version='1.1.9',
     author='erev0s',
     author_email='projects@erev0s.com',
     description='apkInspector is a tool designed to provide detailed insights into '

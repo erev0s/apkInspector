@@ -67,7 +67,7 @@ class EndOfCentralDirectoryRecord:
         size_of_central_directory = struct.unpack('<I', apk_file.read(4))[0]
         offset_of_start_of_central_directory = struct.unpack('<I', apk_file.read(4))[0]
         comment_length = struct.unpack('<H', apk_file.read(2))[0]
-        comment = struct.unpack(f'<{comment_length}s', apk_file.read(comment_length))[0].decode('utf-8')
+        comment = struct.unpack(f'<{comment_length}s', apk_file.read(comment_length))[0].decode('utf-8', 'ignore')
         return cls(
             signature,
             number_of_this_disk,

@@ -109,8 +109,9 @@ def manifest_tampering_indicators(manifest):
     for element in elements:
         if isinstance(element, XmlStartElement):
             for attr in element.attributes:
-                if string_pool.strdata[attr.name_index] == "":
-                    manifest_tampering_indicators_dict['dummy attributes'] = 'found (verify manually)'
+                if 0 <= attr.name_index < len(string_pool.strdata):
+                    if string_pool.strdata[attr.name_index] == "":
+                        manifest_tampering_indicators_dict['dummy attributes'] = 'found (verify manually)'
     if dummy:
         manifest_tampering_indicators_dict['dummy data'] = 'found'
     return manifest_tampering_indicators_dict
