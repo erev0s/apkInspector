@@ -88,7 +88,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
+<li><p><strong>apk_file</strong> (<em>bytesIO</em>) – The APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
 <li><p><strong>central_directory_entries</strong> (<em>dict</em>) – The dictionary with all the entries for the central directory</p></li>
 <li><p><strong>local_header_entries</strong> (<em>dict</em>) – The dictionary with all the local header entries</p></li>
 <li><p><strong>output_dir</strong> (<em>str</em>) – The output directory where to save the files.</p></li>
@@ -114,7 +114,7 @@ and ‘STORED_TAMPERED’ which means that the compression method found was not 
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
+<li><p><strong>apk_file</strong> (<em>bytesIO</em>) – The APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
 <li><p><strong>local_header_info</strong> (<em>dict</em>) – The local header dictionary info for that specific filename</p></li>
 <li><p><strong>central_directory_info</strong> (<em>dict</em>) – The central directory entry for that specific filename</p></li>
 </ul>

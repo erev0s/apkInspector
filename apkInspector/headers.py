@@ -34,7 +34,7 @@ class EndOfCentralDirectoryRecord:
         from the end of the apk.
 
         :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
-        :type apk_file: io.TextIOWrapper
+        :type apk_file: bytesIO
         :return: Returns the end of central directory record with all the information available if the corresponding signature is found. If not, then it returns None.
         :rtype: EndOfCentralDirectoryRecord or None
         """
@@ -202,7 +202,7 @@ class CentralDirectory:
         based on the offset provided by the end of central directory record: eocd.offset_of_start_of_central_directory.
 
         :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
-        :type apk_file: io.TextIOWrapper
+        :type apk_file: bytesIO
         :param eocd: End of central directory record
         :type eocd: EndOfCentralDirectoryRecord
         :return: Returns a dictionary with all the entries discovered. The filename of each entry is used as the key. Besides the fields defined by the specification, each entry has an additional field named 'Offset in the central directory header', which includes the offset of the entry in the central directory itself.
@@ -309,7 +309,7 @@ class LocalHeaderRecord:
         Method that attempts to read the local file header according to the specification https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.3.9.TXT.
 
         :param apk_file: The already read/loaded data of the APK file e.g. with open('test.apk', 'rb') as apk_file
-        :type apk_file: io.TextIOWrapper
+        :type apk_file: bytesIO
         :param entry_of_interest: The central directory header of the specific entry of interest
         :type entry_of_interest: CentralDirectoryEntry
         :return: Returns a dictionary with the local header information or None if it failed to find the header.
@@ -393,7 +393,7 @@ class ZipEntry:
         Method to start processing an APK. The raw (bytes) APK may be passed or the path to it.
 
         :param inc_apk: the incoming apk, either path or bytes
-        :type inc_apk: str or io.TextIOWrapper
+        :type inc_apk: str or bytesIO
         :param raw: boolean flag to specify whether it is the raw apk in bytes or not
         :type raw: bool
         :return: returns the instance of the class

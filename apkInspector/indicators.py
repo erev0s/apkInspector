@@ -10,7 +10,7 @@ def count_eocd(apk_file):
     Counter for the number of time the end of central directory record was found.
 
     :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
-    :type apk_file: io.TextIOWrapper
+    :type apk_file: bytesIO
     :return: The count of how many times the end of central directory record was found
     :rtype: int
     """
@@ -92,7 +92,7 @@ def manifest_tampering_indicators(manifest):
     Method to check for indicators of tampering in the AndroidManifest.xml
 
     :param manifest: The AndroidManifest file to check
-    :type manifest: io.TextIOWrapper
+    :type manifest: bytesIO
     :return: Returns a dictionary with the indicators of tampering for the AndroidManifest
     :rtype: dict
     """
@@ -109,6 +109,8 @@ def manifest_tampering_indicators(manifest):
     for element in elements:
         if isinstance(element, XmlStartElement):
             for attr in element.attributes:
+                if element.attrext[3] != 20:
+                    manifest_tampering_indicators_dict['dummy data between attributes'] = 'found'
                 if 0 <= attr.name_index < len(string_pool.strdata):
                     if string_pool.strdata[attr.name_index] == "":
                         manifest_tampering_indicators_dict['dummy attributes'] = 'found (verify manually)'
@@ -122,7 +124,7 @@ def apk_tampering_check(apk_file, strict: bool):
     Method to combine the check for tampering in the zip structure and in the AndroidManifest and return the results.
 
     :param apk_file: The apk file to check
-    :type apk_file: io.TextIOWrapper
+    :type apk_file: bytesIO
     :param strict: A boolean to strictly check all fields or not. Suggested value: False
     :type strict: bool
     :return: Returns a combined dictionary with the results from the zip_tampering_indicators and the manifest_tampering_indicators
