@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 16-12-2023
+ - Improved axml to detect dummy data in between attributes
+ - Updated documentation
+
 ## [1.1.9] - 16-12-2023
  - Ignore bytes that can't be decoded also for comments
  - Adjust dummy attributes detection to be within range of string pool

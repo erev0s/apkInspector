@@ -147,7 +147,7 @@ based on the offset provided by the end of central directory record: eocd.offset
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The already read/loaded data of the APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
+<li><p><strong>apk_file</strong> (<em>bytesIO</em>) – The already read/loaded data of the APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
 <li><p><strong>eocd</strong> (<a class="reference internal" href="#apkInspector.headers.EndOfCentralDirectoryRecord" title="apkInspector.headers.EndOfCentralDirectoryRecord"><em>EndOfCentralDirectoryRecord</em></a>) – End of central directory record</p></li>
 </ul>
 </dd>
@@ -243,7 +243,7 @@ reading a ZIP archive. Should be noted that certain APKs do not follow the zip s
 from the end of the apk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The already read/loaded data of the APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p>
+<dd class="field-odd"><p><strong>apk_file</strong> (<em>bytesIO</em>) – The already read/loaded data of the APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns the end of central directory record with all the information available if the corresponding signature is found. If not, then it returns None.</p>
@@ -298,7 +298,7 @@ from the end of the apk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>apk_file</strong> (<em>io.TextIOWrapper</em>) – The already read/loaded data of the APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
+<li><p><strong>apk_file</strong> (<em>bytesIO</em>) – The already read/loaded data of the APK file e.g. with open(‘test.apk’, ‘rb’) as apk_file</p></li>
 <li><p><strong>entry_of_interest</strong> (<a class="reference internal" href="#apkInspector.headers.CentralDirectoryEntry" title="apkInspector.headers.CentralDirectoryEntry"><em>CentralDirectoryEntry</em></a>) – The central directory header of the specific entry of interest</p></li>
 </ul>
 </dd>
@@ -414,7 +414,7 @@ from the end of the apk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>inc_apk</strong> (<em>str</em><em> or </em><em>io.TextIOWrapper</em>) – the incoming apk, either path or bytes</p></li>
+<li><p><strong>inc_apk</strong> (<em>str</em><em> or </em><em>bytesIO</em>) – the incoming apk, either path or bytes</p></li>
 <li><p><strong>raw</strong> (<em>bool</em>) – boolean flag to specify whether it is the raw apk in bytes or not</p></li>
 </ul>
 </dd>

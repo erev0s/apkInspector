@@ -11,7 +11,7 @@ def extract_file_based_on_header_info(apk_file, local_header_info, central_direc
     and 'STORED_TAMPERED' which means that the compression method found was not STORED(0) but should have been.
 
     :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
-    :type apk_file: io.TextIOWrapper
+    :type apk_file: bytesIO
     :param local_header_info: The local header dictionary info for that specific filename
     :type local_header_info: dict
     :param central_directory_info: The central directory entry for that specific filename
@@ -61,7 +61,7 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
     Extracts all files from an APK based on the entries detected in the central_directory_entries.
 
     :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
-    :type apk_file: io.TextIOWrapper
+    :type apk_file: bytesIO
     :param central_directory_entries: The dictionary with all the entries for the central directory
     :type central_directory_entries: dict
     :param local_header_entries: The dictionary with all the local header entries

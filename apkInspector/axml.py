@@ -31,7 +31,7 @@ class ResChunkHeader:
         Read the header type (2 bytes), header size (2 bytes), and entry size (4 bytes).
 
         :param file: the xml file e.g. with open('/path/AndroidManifest.xml', 'rb') as file
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :return: Returns an instance of itself
         :rtype: ResChunkHeader
         """
@@ -63,7 +63,7 @@ class ResStringPoolHeader:
         Read and parse ResStringPoolHeader from the file.
 
         :param file: the xml file right after the header has been read.
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :return: Returns an instance of itself
         :rtype: ResStringPoolHeader
         """
@@ -94,7 +94,7 @@ class StringPoolType:
         Reads the offset available for each string. Requires to know the number of strings available beforehand.
 
         :param file: the xml file right after the string pool header has been read.
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :param num_of_strings: the calculated number of strings available
         :type num_of_strings: int
         :param end_absolute_offset: the absolute value of the offset where the offsets finish.
@@ -117,7 +117,7 @@ class StringPoolType:
         Handling the different encoding possibilities that can be met.
 
         :param file: the xml file at the offset where the string is to be read
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :param is_utf8: boolean to check if a utf8 string is expected
         :type is_utf8: bool
         :return: Returns the decoded string
@@ -149,7 +149,7 @@ class StringPoolType:
         Gets the actual strings based on the offsets retrieved from read_string_offsets().
 
         :param file: the xml file right after the string pool offsets have been read
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :param string_offsets: see -> read_string_offsets()
         :type string_offsets: list
         :param strings_start: the offset at which the string data starts
@@ -176,7 +176,7 @@ class StringPoolType:
         Parse the string pool to acquire the strings used within the axml.
 
         :param file: the xml file right after the file header is read
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :return: Returns an instance of itself
         :rtype: StringPoolType
         """
@@ -225,7 +225,7 @@ class XmlResourceMapType:
         Parse the resource map and get the resource IDs.
 
         :param file: the xml file right after the string pool is read
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :return: Returns an instance of itself
         :rtype: XmlResourceMapType
         """
@@ -250,7 +250,7 @@ class XmlStartNamespace:
         """
         Parse the starting element of a Namespace
         :param file: the axml already pointing at the right offset
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :param header: the already read header of the chunk
         :type header: ResChunkHeader
         :return: an instance of itself
@@ -277,7 +277,7 @@ class XmlEndNamespace:
         Parse the ending element of a Namespace.
 
         :param file: the axml already pointing at the right offset
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :param header: the already read header of the chunk
         :type header: ResChunkHeader
         :return: an instance of itself
@@ -305,22 +305,25 @@ class XmlAttributeElement:
         self.typed_value_data = typed_value_data
 
     @classmethod
-    def parse(cls, file, attr_count):
+    def parse(cls, file, attr_count, attr_size):
         """
         The method is responsible to parse and retrieve the attributes of an element based on the attribute count.
         There are many datatypes that are not read according to the specification (at least for now), but that does
-        not affect the main goal of the tool, therefore it is not a priority. For the presentation of the values another
-        check is occurring in the process_attributes method.
+        not affect the main goal of the tool, therefore it is not a priority. For the presentation of the values
+        another check is occurring in the process_attributes method.
 
         :param file: the axml already pointing at the right offset
-        :type file: io.TextIOWrapper
+        :type file: BytesIO
         :param attr_count: The attribute count value part of XmlStartElement.attrext
         :type attr_count: int
+        :param attr_size: The attribute size value part of XmlStartElement
+        :type attr_size: int
         :return: List of attributes
         :rtype: list
         """
         attrs = []
         for _ in range(0, attr_count):
+            tn = file.tell()
             full_namespace_index = struct.unpack('<I', file.read(4))[0]
             name_index = struct.unpack('<I', file.read(4))[0]
             raw_value_index = struct.unpack('<I', file.read(4))[0]
@@ -337,6 +340,8 @@ class XmlAttributeElement:
                 typed_value_data = struct.unpack('<I', file.read(4))[0]
             attrs.append(cls(full_namespace_index, name_index, raw_value_index, typed_value_size, typed_value_res0,
                              typed_value_datatype, typed_value_data))
+            if file.tell() - tn != attr_size:  # check for any dummy data in between attributes
+                file.read(attr_size-(file.tell() - tn))
         return attrs
 
 
@@ -357,7 +362,7 @@ class XmlStartElement:
         Parse the current element
 
         :param file: the axml already pointing at the right offset
-        :type file: io.TextIOWrapper
+        :type file: BytesIO
         :param header: the already read header of the chunk
         :type header: ResChunkHeader
         :return: an instance of itself
@@ -365,10 +370,9 @@ class XmlStartElement:
         """
         full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index, style_index = struct.unpack(
             '<IIHHHHHH', file.read(20))
-
         attrext = [full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index,
                    style_index]
-        attributes = XmlAttributeElement.parse(file, attr_count)
+        attributes = XmlAttributeElement.parse(file, attr_count, attr_size)
         return cls(header.type, header.header_size, header.total_size, attrext, attributes)
 
 
@@ -387,7 +391,7 @@ class XmlEndElement:
         Parse the end of an element.
 
         :param file: the axml already pointing at the right offset
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :param header: the already read header of the chunk
         :type header: ResChunkHeader
         :return: an instance of itself
@@ -419,7 +423,7 @@ class XmlcDataElement:
         Parse the CDATA element.
 
         :param file: the axml already pointing at the right offset
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :param header: the already read header of the chunk
         :type header: ResChunkHeader
         :return: an instance of itself
@@ -461,7 +465,7 @@ class ManifestStruct:
         A composition of the rest of the classes available in the apkInspector.axml module, to form the AndroidManifest structure.
 
         :param file: the axml that will be processed
-        :type file: io.TextIOWrapper
+        :type file: bytesIO
         :return: an instance of itself
         :rtype: ManifestStruct
         """
@@ -488,7 +492,7 @@ def parse_next_header(file):
     The dispatcher automatically picks the correct processing method for each chunk type.
 
     :param file: the axml that will be processed
-    :type file: io.TextIOWrapper
+    :type file: bytesIO
     :raises NotImplementedError: The chunk type identified is not supported
     :return: Dispatches to the appropriate processing method for each chunk type.
     """
@@ -512,7 +516,7 @@ def process_elements(file):
     this evasion technique.
 
     :param file: the axml that will be processed
-    :type file: io.TextIOWrapper
+    :type file: BytesIO
     :return: Returns all the elements found as their corresponding classes and whether dummy data were found in between.
     :rtype: set(list, int)
     """
@@ -638,7 +642,7 @@ def get_manifest(raw_manifest):
     Helper method to directly return the AndroidManifest file as created by create_manifest()
 
     :param raw_manifest: expects the encoded AndroidManifest.xml file as a file-like object
-    :type raw_manifest: io.TextIOWrapper
+    :type raw_manifest: bytesIO
     :return: returns the decoded AndroidManifest file
     :rtype: str
     """
