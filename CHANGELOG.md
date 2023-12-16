@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.9] - 16-12-2023
+ - Ignore bytes that can't be decoded also for comments
+ - Adjust dummy attributes detection to be within range of string pool
+
 ## [1.1.8] - 09-12-2023
  - Multiple updates on the documentation https://erev0s.github.io/apkInspector/
  - Returning KeyError instead of None, when an entry is not there for local headers or central directory
