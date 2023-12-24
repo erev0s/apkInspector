@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 24-12-2023
+ - Cover edge case for tampered STORE zip entry
+
 ## [1.2.0] - 16-12-2023
  - Improved axml to detect dummy data in between attributes
  - Updated documentation
