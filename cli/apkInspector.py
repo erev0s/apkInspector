@@ -130,7 +130,7 @@ def main():
                 parser.print_help()
     elif args.specify_manifest:
         with open(args.specify_manifest, 'rb') as enc_manifest:
-            manifest = get_manifest(enc_manifest)
+            manifest = get_manifest(io.BytesIO(enc_manifest.read()))
             with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
                 xml_file.write(manifest)
             print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
