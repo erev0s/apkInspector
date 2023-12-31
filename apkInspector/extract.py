@@ -34,8 +34,8 @@ def extract_file_based_on_header_info(apk_file, local_header_info, central_direc
     offset = central_directory_info["relative_offset_of_local_file_header"]
     apk_file.seek(offset + local_header_size + filename_length + extra_field_length)
     if compression_method == 0:  # Stored (no compression)
-        compressed_data = apk_file.read(compressed_size)
-        extracted_data = compressed_data
+        uncompressed_data = apk_file.read(uncompressed_size)
+        extracted_data = uncompressed_data
         indicator = 'STORED'
     elif compression_method == 8:
         compressed_data = apk_file.read(compressed_size)
