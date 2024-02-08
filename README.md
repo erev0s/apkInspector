@@ -86,7 +86,9 @@ It should be kept in mind that apkInspector is an evolving project, a work in pr
 ## Contributions
 We welcome contributions from the open-source community to help improve and enhance apkInspector. Whether you're a developer, tester, or documentation enthusiast, your contributions are valuable.
 
-
+## :rocket: apkInspector is being used by :rocket: : 
+ - [androguard](https://github.com/androguard/androguard/)
+ - [medusa](https://github.com/Ch0pin/medusa)
 
 
 
