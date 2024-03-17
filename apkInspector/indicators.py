@@ -14,6 +14,7 @@ def count_eocd(apk_file):
     :return: The count of how many times the end of central directory record was found
     :rtype: int
     """
+    apk_file.seek(0)
     content = apk_file.read()
     return content.count(b'\x50\x4b\x05\x06')
 
@@ -24,7 +25,7 @@ def zip_tampering_indicators(apk_file, strict: bool):
     structure, serve as a method of evasion against static analysis tools.
 
     :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
-    :type apk_file: io.TextIOWrapper
+    :type apk_file: bytesIO
     :param strict: Whether to be checking strictly or not. Utilizing the application set that was used also for the tests here https://github.com/erev0s/apkInspector/tree/main/tests/top_apps, we tested what kind of indicators would be returned. It turns out that in some cases the local header and the central directory entry for the same file do not have the same values for some keys. So the strict checking was added, to be able to exclude these rare but possible occasions.
     :type strict: bool
     :return: Returns a dictionary with the detected indicators.
