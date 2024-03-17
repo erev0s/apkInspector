@@ -117,8 +117,10 @@ def manifest_tampering_indicators(manifest):
                 if 0 <= attr.name_index < len(string_pool.strdata):
                     if string_pool.strdata[attr.name_index] == "":
                         manifest_tampering_indicators_dict['dummy attributes'] = 'found (verify manually)'
-    if dummy:
-        manifest_tampering_indicators_dict['dummy data'] = 'found'
+    if dummy[0]:
+        manifest_tampering_indicators_dict['dummy_data_between_elements'] = 'found'
+    if dummy[1]:
+        manifest_tampering_indicators_dict['wrong_end_namespace_size'] = 'found'
     return manifest_tampering_indicators_dict
 
 
