@@ -534,7 +534,7 @@ def process_elements(file):
         file.seek(cur_pos)
         if cur_pos == 0 or (
                 _type in possible_types and _header_size >= min_size):
-            if _size < min_size and _type == 259:
+            if _size < min_size and _type == 257:
                 wrong_end_namespace_size = 1
             chunk_type = parse_next_header(file)
             elements.append(chunk_type)
