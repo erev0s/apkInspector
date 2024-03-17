@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='apkInspector',
-    version='1.2.1',
+    version='1.2.2',
     author='erev0s',
     author_email='projects@erev0s.com',
     description='apkInspector is a tool designed to provide detailed insights into '
@@ -14,7 +14,7 @@ setup(
     python_requires='>=3.5',
     entry_points={
         'console_scripts': [
-            'apkInspector=cli.apkInspector:main',
+            'apkInspector=apkInspectorCLI.main:main',
         ],
     },
 )

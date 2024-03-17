@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apkInspector"
-version = "1.2.1"
+version = "1.2.2"
 description = "apkInspector is a tool designed to provide detailed insights into the zip structure of APK files, offering the capability to extract content and decode the AndroidManifest.xml file."
 authors = ["erev0s <projects@erev0s.com>"]
 license = "Apache-2.0"
@@ -9,14 +9,14 @@ repository = "https://github.com/erev0s/apkInspector"
 
 packages = [
     { include = "apkInspector" },
-    { include = "cli" },
+    { include = "apkInspectorCLI" },
 ]
 
 [tool.poetry.dependencies]
 python = "^3.5"
 
 [tool.poetry.scripts]
-apkInspector = "cli.apkInspector:main"
+apkInspector = "apkInspectorCLI.main:main"
 
 [build-system]
 requires = ["poetry-core"]

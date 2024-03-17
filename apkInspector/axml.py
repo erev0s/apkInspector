@@ -521,7 +521,8 @@ def process_elements(file):
     :rtype: set(list, int)
     """
     elements = []
-    dummy = 0
+    dummy_data_between_elements = 0
+    wrong_end_namespace_size = 0
     possible_types = {256, 257, 258, 259, 260}
     min_size = 8
     while True:
@@ -532,13 +533,15 @@ def process_elements(file):
         _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
         file.seek(cur_pos)
         if cur_pos == 0 or (
-                _type in possible_types and _header_size >= min_size and _size > min_size):
+                _type in possible_types and _header_size >= min_size):
+            if _size < min_size and _type == 257:
+                wrong_end_namespace_size = 1
             chunk_type = parse_next_header(file)
             elements.append(chunk_type)
             continue
         file.read(1)
-        dummy = 1
-    return elements, dummy
+        dummy_data_between_elements = 1
+    return elements, (dummy_data_between_elements, wrong_end_namespace_size)
 
 
 def process_attributes(attributes, string_data, ns_dict):

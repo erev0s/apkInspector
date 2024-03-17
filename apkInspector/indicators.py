@@ -14,6 +14,7 @@ def count_eocd(apk_file):
     :return: The count of how many times the end of central directory record was found
     :rtype: int
     """
+    apk_file.seek(0)
     content = apk_file.read()
     return content.count(b'\x50\x4b\x05\x06')
 
@@ -24,16 +25,18 @@ def zip_tampering_indicators(apk_file, strict: bool):
     structure, serve as a method of evasion against static analysis tools.
 
     :param apk_file: The APK file e.g. with open('test.apk', 'rb') as apk_file
-    :type apk_file: io.TextIOWrapper
+    :type apk_file: bytesIO
     :param strict: Whether to be checking strictly or not. Utilizing the application set that was used also for the tests here https://github.com/erev0s/apkInspector/tree/main/tests/top_apps, we tested what kind of indicators would be returned. It turns out that in some cases the local header and the central directory entry for the same file do not have the same values for some keys. So the strict checking was added, to be able to exclude these rare but possible occasions.
     :type strict: bool
     :return: Returns a dictionary with the detected indicators.
     :rtype: dict
     """
     zip_tampering_indicators_dict = {}
-    count = count_eocd(apk_file)
-    if count > 1:
-        zip_tampering_indicators_dict['eocd_count'] = count
+    if strict:
+        # This is added as strict as a few legitimate APKs do have it for some reason
+        count = count_eocd(apk_file)
+        if count > 1:
+            zip_tampering_indicators_dict['eocd_count'] = count
     zipentry_dict = ZipEntry.parse(apk_file).to_dict()
 
     unique_keys = list(zipentry_dict["central_directory"].keys() ^ zipentry_dict["local_headers"].keys())
@@ -114,8 +117,10 @@ def manifest_tampering_indicators(manifest):
                 if 0 <= attr.name_index < len(string_pool.strdata):
                     if string_pool.strdata[attr.name_index] == "":
                         manifest_tampering_indicators_dict['dummy attributes'] = 'found (verify manually)'
-    if dummy:
-        manifest_tampering_indicators_dict['dummy data'] = 'found'
+    if dummy[0]:
+        manifest_tampering_indicators_dict['dummy_data_between_elements'] = 'found'
+    if dummy[1]:
+        manifest_tampering_indicators_dict['wrong_end_namespace_size'] = 'found'
     return manifest_tampering_indicators_dict
 
 
