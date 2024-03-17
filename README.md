@@ -69,6 +69,7 @@ The library component of apkInspector is designed with extensibility in mind, al
    - Tampered StringCount value
    - Dummy attributes for elements
    - Dummy data between elements
+   - Wrong sized end namespace element
 
 
 The command-line interface (CLI) serves as a practical illustration of how the methods provided by the library have been employed.
