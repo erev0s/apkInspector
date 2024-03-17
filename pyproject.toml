@@ -9,14 +9,14 @@ repository = "https://github.com/erev0s/apkInspector"
 
 packages = [
     { include = "apkInspector" },
-    { include = "cli" },
+    { include = "apkInspectorCLI" },
 ]
 
 [tool.poetry.dependencies]
 python = "^3.5"
 
 [tool.poetry.scripts]
-apkInspector = "cli.apkInspector:main"
+apkInspector = "apkInspectorCLI.main:main"
 
 [build-system]
 requires = ["poetry-core"]

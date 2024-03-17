@@ -111,14 +111,11 @@ def main():
                     xml_file.write(manifest)
                 print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
             elif args.analyze:
-                tamperings = apk_tampering_check(apk_file, False)
+                tamperings = apk_tampering_check(zipentry.zip, False)
                 if tamperings['zip tampering']:
                     print(
-                        f"\n{len(tamperings['zip tampering'])} file(s) listed below appear to have a tampered zip structure!\n")
-                    for val in tamperings['zip tampering']:
-                        pretty_print_header(val)
-                        for dtls in tamperings['zip tampering'][val]:
-                            print(f"{dtls:40}: {tamperings['zip tampering'][val][dtls]}")
+                        f"\nThe zip structure was tampered with using the following patters:\n")
+                    print_nested_dict(tamperings['zip tampering'])
                 else:
                     print(f"No files were detected were a tampering in the zip structure was present.")
                 if tamperings['manifest tampering']:

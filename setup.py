@@ -14,7 +14,7 @@ setup(
     python_requires='>=3.5',
     entry_points={
         'console_scripts': [
-            'apkInspector=cli.apkInspector:main',
+            'apkInspector=apkInspector-cli.main:main',
         ],
     },
 )

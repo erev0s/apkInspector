@@ -32,9 +32,11 @@ def zip_tampering_indicators(apk_file, strict: bool):
     :rtype: dict
     """
     zip_tampering_indicators_dict = {}
-    count = count_eocd(apk_file)
-    if count > 1:
-        zip_tampering_indicators_dict['eocd_count'] = count
+    if strict:
+        # This is added as strict as a few legitimate APKs do have it for some reason
+        count = count_eocd(apk_file)
+        if count > 1:
+            zip_tampering_indicators_dict['eocd_count'] = count
     zipentry_dict = ZipEntry.parse(apk_file).to_dict()
 
     unique_keys = list(zipentry_dict["central_directory"].keys() ^ zipentry_dict["local_headers"].keys())
