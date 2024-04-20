@@ -80,9 +80,12 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
         os.makedirs(output_dir, exist_ok=True)
         # Iterate over central directory entries
         for filename, cd_header_info in central_directory_entries.items():
+            if not filename:
+                # to account for the cases where an empty filename entry is added
+                continue
             # Extract the file using the local header information
             extracted_data = \
-            extract_file_based_on_header_info(apk_file, local_header_entries[filename], cd_header_info)[0]
+                extract_file_based_on_header_info(apk_file, local_header_entries[filename], cd_header_info)[0]
             # Construct the output file path
             output_path = os.path.join(output_dir, filename)
             # Create directories if necessary

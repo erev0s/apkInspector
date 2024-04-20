@@ -112,7 +112,7 @@ class StringPoolType:
         return string_offsets
 
     @classmethod
-    def decode_stringpool_mixed_string(cls, file, is_utf8):
+    def decode_stringpool_mixed_string(cls, file, is_utf8, end_stringpool_offset):
         """
         Handling the different encoding possibilities that can be met.
 
@@ -133,6 +133,9 @@ class StringPoolType:
                 # UTF-16 string with fixup
                 u16len_fix = struct.unpack('<H', file.read(2))[0]
                 real_length = ((u16len & 0x7FFF) << 16) | u16len_fix
+                if real_length > end_stringpool_offset:
+                    return ""
+                # TODO:a check for non null-terminated strings should be here as well
                 content = file.read(real_length * 2).decode('utf-16le')
         else:
             # Handle UTF-8 encoded strings
@@ -166,7 +169,7 @@ class StringPoolType:
             # Move the file pointer to the start of the string
             file.seek(absolute_offset)
             # Read the length of the string (in bytes)
-            content = cls.decode_stringpool_mixed_string(file, is_utf8)
+            content = cls.decode_stringpool_mixed_string(file, is_utf8, strings_start + string_offsets[-1])
             strings.append(content)
         return strings
 
