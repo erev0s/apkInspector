@@ -332,9 +332,12 @@ class LocalHeaderRecord:
             uncompressed_size = struct.unpack('<I', apk_file.read(4))[0]
             file_name_length = struct.unpack('<H', apk_file.read(2))[0]
             extra_field_length = struct.unpack('<H', apk_file.read(2))[0]
-            filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8')
-            extra_field = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8',
-                                                                                                                'ignore')
+            try:
+                filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8')
+                extra_field = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8', 'ignore')
+            except:
+                filename = entry_of_interest.filename
+                extra_field = entry_of_interest.extra_field
         return cls(
             version_needed_to_extract, general_purpose_bit_flag, compression_method,
             file_last_modification_time, file_last_modification_date, crc32_of_uncompressed_data,
