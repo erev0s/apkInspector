@@ -422,7 +422,7 @@ class ZipEntry:
         Similar to parse, but instead of parsing the entire APK, it only targets the specified file.
 
         :param apk_file: The apk file expected raw
-        :type apk_file: io.TextIOWrapper
+        :type apk_file: bytesIO
         :param filename: the filename of the file to be parsed
         :type filename: str
         :param eocd: Optionally, the instance of the end of central directory from the APK

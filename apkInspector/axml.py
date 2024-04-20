@@ -20,10 +20,11 @@ class ResChunkHeader:
     the header belongs to.
     """
 
-    def __init__(self, header_type, header_size, total_size):
+    def __init__(self, header_type, header_size, total_size, data):
         self.type = header_type
         self.header_size = header_size
         self.total_size = total_size
+        self.data = data
 
     @classmethod
     def parse(cls, file):
@@ -40,7 +41,7 @@ class ResChunkHeader:
             # End of file
             return None
         header_type, header_size, total_size = struct.unpack('<HHI', header_data)
-        return cls(header_type, header_size, total_size)
+        return cls(header_type, header_size, total_size, header_data)
 
 
 class ResStringPoolHeader:
@@ -48,14 +49,15 @@ class ResStringPoolHeader:
     It reads the string pool header which contains information about the StringPool.
     """
 
-    def __init__(self, header_type, header_size, total_size, string_count, style_count, flags, strings_start,
-                 styles_start):
-        self.header = ResChunkHeader(header_type, header_size, total_size)
+    def __init__(self, header: ResChunkHeader, string_count, style_count, flags, strings_start,
+                 styles_start, data):
+        self.header = header
         self.string_count = string_count
         self.style_count = style_count
         self.flags = flags
         self.strings_start = strings_start
         self.styles_start = styles_start
+        self.data = data
 
     @classmethod
     def parse(cls, file):
@@ -70,8 +72,8 @@ class ResStringPoolHeader:
         header = ResChunkHeader.parse(file)
         string_pool_header_data = file.read(20)
         string_count, style_count, flags, strings_start, styles_start = struct.unpack('<IIIII', string_pool_header_data)
-        return cls(header.type, header.header_size, header.total_size, string_count, style_count, flags, strings_start,
-                   styles_start)
+        return cls(header, string_count, style_count, flags, strings_start,
+                   styles_start, string_pool_header_data)
 
 
 class StringPoolType:
@@ -80,13 +82,11 @@ class StringPoolType:
     along with the string offsets and the string data.
     """
 
-    def __init__(self, header_type, header_size, total_size, string_count, style_count, flags, strings_start,
-                 styles_start, string_offsets, strdata):
-        self.header = ResStringPoolHeader(header_type, header_size, total_size, string_count, style_count, flags,
-                                          strings_start,
-                                          styles_start)
+    def __init__(self, string_pool_header: ResStringPoolHeader, string_offsets, strings, string_pool_data):
+        self.str_header = string_pool_header
         self.string_offsets = string_offsets
-        self.strdata = strdata
+        self.string_list = strings
+        self.data = string_pool_data
 
     @classmethod
     def read_string_offsets(cls, file, num_of_strings, end_absolute_offset):
@@ -185,6 +185,7 @@ class StringPoolType:
         :rtype: StringPoolType
         """
         string_pool_header = ResStringPoolHeader.parse(file)
+        string_pool_start = file.tell()
         size_of_strings_offsets = string_pool_header.strings_start - 28
         # it should be divisible by 4, as 4 bytes are per offset, so we can get accurately the # of strings
         num_of_strings = size_of_strings_offsets // 4
@@ -192,7 +193,7 @@ class StringPoolType:
             logging.warning(f"The number of strings in the string pool is not a integer number.")
         string_offsets = cls.read_string_offsets(file, num_of_strings, string_pool_header.strings_start + 8)
         is_utf8 = bool(string_pool_header.flags & (1 << 8))
-        string_data = cls.read_strings(file, string_offsets, string_pool_header.strings_start, is_utf8)
+        string_list = cls.read_strings(file, string_offsets, string_pool_header.strings_start, is_utf8)
         while True:  # read any null bytes remaining
             cur_pos = file.tell()
             if file.read(2) == b'\x80\x01':
@@ -200,17 +201,14 @@ class StringPoolType:
                 break
             file.seek(cur_pos)
             file.read(1)
+        string_pool_end = file.tell()
+        file.seek(string_pool_start)
+        string_pool_data = file.read(string_pool_end - string_pool_start)
         return cls(
-            string_pool_header.header.type,
-            string_pool_header.header.header_size,
-            string_pool_header.header.total_size,
-            string_pool_header.string_count,
-            string_pool_header.style_count,
-            string_pool_header.flags,
-            string_pool_header.strings_start,
-            string_pool_header.styles_start,
+            string_pool_header,
             string_offsets,
-            string_data
+            string_list,
+            string_pool_data
         )
 
 
@@ -219,9 +217,10 @@ class XmlResourceMapType:
     Resource map class, with the header and the resource IDs.
     """
 
-    def __init__(self, header_type, header_size, total_size, resids):
-        self.header = ResChunkHeader(header_type, header_size, total_size)
+    def __init__(self, header, resids, resids_data):
+        self.header = header
         self.resids = resids
+        self.data = resids_data
 
     @classmethod
     def parse(cls, file):
@@ -235,9 +234,42 @@ class XmlResourceMapType:
         """
         header = ResChunkHeader.parse(file)
         num_resids = (header.total_size - header.header_size) // 4
-        resids = [struct.unpack('<I', file.read(4))[0] for _ in range(num_resids)]
+        resids_data = file.read(num_resids*4)
+        chunks = [resids_data[i:i + 4] for i in range(0, len(resids_data), 4)]
+        resids = [struct.unpack('<I', chunk)[0] for chunk in chunks]
 
-        return cls(header.type, header.header_size, header.total_size, resids)
+        return cls(header, resids, resids_data)
+
+
+class ResXMLHeader:
+    """
+    Chunk header used as a header for the elements.
+    This header represents the header for the rest of the elements besides the initial header, the string pool and
+    the resource map.
+    """
+
+    def __init__(self, header: ResChunkHeader, data):
+        self.header = header
+        # self.xml_header_line_number = header_line_number  # not useful
+        # self.xml_header_comment = header_comment          # not useful
+        self.data = data
+
+    @classmethod
+    def parse(cls, file):
+        """
+        Supporting header for the elements besides the initial header, the string pool and
+        the resource map.
+
+        :param file: the xml file e.g. with open('/path/AndroidManifest.xml', 'rb') as file
+        :type file: bytesIO
+        :return: Returns an instance of itself
+        :rtype: ResXMLHeader
+        """
+        header = ResChunkHeader.parse(file)
+        header_data = b''
+        if header.header_size > 8:
+            header_data = file.read(header.header_size - 8)
+        return cls(header, header_data)
 
 
 class XmlStartNamespace:
@@ -245,24 +277,27 @@ class XmlStartNamespace:
     The actual start of the xml, after this the elements of the xml will be found.
     """
 
-    def __init__(self, header_type, header_size, total_size, ext):
-        self.header = ResChunkHeader(header_type, header_size, total_size)
+    def __init__(self, header: ResXMLHeader, ext, ext_data):
+        self.header = header
         self.ext = ext  # [prefix_index, uri_index]
+        self.data = ext_data
 
     @classmethod
-    def parse(cls, file, header: ResChunkHeader):
+    def parse(cls, file, header_t: ResXMLHeader):
         """
         Parse the starting element of a Namespace
         :param file: the axml already pointing at the right offset
         :type file: bytesIO
-        :param header: the already read header of the chunk
-        :type header: ResChunkHeader
+        :param header_t: the already read header of the chunk
+        :type header_t: ResXMLHeader
         :return: an instance of itself
         :rtype: XmlStartNamespace
         """
-        num_exts = (header.total_size - header.header_size) // 4
-        ext = [struct.unpack('<I', file.read(4))[0] for _ in range(num_exts)]
-        return cls(header.type, header.header_size, header.total_size, ext)
+        num_exts = (header_t.header.total_size - header_t.header.header_size) // 4
+        ext_data = file.read(num_exts*4)
+        chunks = [ext_data[i:i + 4] for i in range(0, len(ext_data), 4)]
+        ext = [struct.unpack('<I', chunk)[0] for chunk in chunks]
+        return cls(header_t, ext, ext_data)
 
 
 class XmlEndNamespace:
@@ -270,27 +305,27 @@ class XmlEndNamespace:
     Class to represent the end of a Namespace.
     """
 
-    def __init__(self, header_type, header_size, total_size, prefix_namespace_index, uri_index):
-        self.header = ResChunkHeader(header_type, header_size, total_size)
+    def __init__(self, header: ResXMLHeader, prefix_namespace_index, uri_index, end_namespace_data):
+        self.header = header
         self.prefix_namespace_index = prefix_namespace_index
         self.uri_index = uri_index
+        self.data = end_namespace_data
 
     @classmethod
-    def parse(cls, file, header: ResChunkHeader):
+    def parse(cls, file, header_t: ResXMLHeader):
         """
         Parse the ending element of a Namespace.
 
         :param file: the axml already pointing at the right offset
         :type file: bytesIO
-        :param header: the already read header of the chunk
-        :type header: ResChunkHeader
+        :param header_t: the already read header of the chunk
+        :type header_t: ResXMLHeader
         :return: an instance of itself
         :rtype: XmlEndNamespace
         """
-        prefix_namespace_index = struct.unpack('<I', file.read(4))[0]
-        uri_index = struct.unpack('<I', file.read(4))[0]
-
-        return cls(header.type, header.header_size, header.total_size, prefix_namespace_index, uri_index)
+        end_namespace_data = file.read(8)
+        prefix_namespace_index, uri_index = struct.unpack('<II', end_namespace_data)
+        return cls(header_t, prefix_namespace_index, uri_index, end_namespace_data)
 
 
 class XmlAttributeElement:
@@ -355,29 +390,34 @@ class XmlStartElement:
     The attrext contains information about the element including the attribute count.
     """
 
-    def __init__(self, header_type, header_size, total_size, attrext, attributes):
-        self.header = ResChunkHeader(header_type, header_size, total_size)
+    def __init__(self, header: ResXMLHeader, attrext, attributes, start_element_data):
+        self.header = header
         self.attrext = attrext
         self.attributes = attributes
+        self.data = start_element_data
 
     @classmethod
-    def parse(cls, file, header: ResChunkHeader):
+    def parse(cls, file, header_t: ResXMLHeader):
         """
         Parse the current element
 
         :param file: the axml already pointing at the right offset
         :type file: BytesIO
-        :param header: the already read header of the chunk
-        :type header: ResChunkHeader
+        :param header_t: the already read header of the chunk
+        :type header_t: ResXMLHeader
         :return: an instance of itself
         :rtype: XmlStartElement
         """
+        attrext_data = file.read(20)
         full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index, style_index = struct.unpack(
-            '<IIHHHHHH', file.read(20))
+            '<IIHHHHHH', attrext_data)
         attrext = [full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index,
                    style_index]
+        cp = file.tell()
+        attributes_data = file.read(attr_size*attr_count)
+        file.seek(cp)
         attributes = XmlAttributeElement.parse(file, attr_count, attr_size)
-        return cls(header.type, header.header_size, header.total_size, attrext, attributes)
+        return cls(header_t, attrext, attributes, (attrext_data + attributes_data))
 
 
 class XmlEndElement:
@@ -385,25 +425,27 @@ class XmlEndElement:
     The end of an element, where the attrext contains the necessary information on which element it ends.
     """
 
-    def __init__(self, header_type, header_size, total_size, attrext):
-        self.header = ResChunkHeader(header_type, header_size, total_size)
+    def __init__(self, header: ResXMLHeader, attrext, attrext_data):
+        self.header = header
         self.attrext = attrext
+        self.data = attrext_data
 
     @classmethod
-    def parse(cls, file, header: ResChunkHeader):
+    def parse(cls, file, header_t: ResXMLHeader):
         """
         Parse the end of an element.
 
         :param file: the axml already pointing at the right offset
         :type file: bytesIO
-        :param header: the already read header of the chunk
-        :type header: ResChunkHeader
+        :param header_t: the already read header of the chunk
+        :type header_t: ResXMLHeader
         :return: an instance of itself
         :rtype: XmlEndElement
         """
-        full_namespace_index, name_index = struct.unpack('<II', file.read(8))
+        attrext_data = file.read(8)
+        full_namespace_index, name_index = struct.unpack('<II', attrext_data)
         attrext = [full_namespace_index, name_index]
-        return cls(header.type, header.header_size, header.total_size, attrext)
+        return cls(header_t, attrext, attrext_data)
 
 
 class XmlcDataElement:
@@ -412,34 +454,36 @@ class XmlcDataElement:
     https://developer.android.com/reference/org/w3c/dom/CDATASection
     """
 
-    def __init__(self, header_type, header_size, total_size, data_index, typed_value_size, typed_value_res0,
-                 typed_value_datatype, typed_value_data):
-        self.header = ResChunkHeader(header_type, header_size, total_size)
+    def __init__(self, header: ResXMLHeader, data_index, typed_value_size, typed_value_res0,
+                 typed_value_datatype, typed_value_data, cdata_data):
+        self.header = header
         self.data_index = data_index
         self.typed_value_size = typed_value_size
         self.typed_value_res0 = typed_value_res0
         self.typed_value_datatype = typed_value_datatype
         self.typed_value_data = typed_value_data
+        self.data = cdata_data
 
     @classmethod
-    def parse(cls, file, header: ResChunkHeader):
+    def parse(cls, file, header_t: ResXMLHeader):
         """
         Parse the CDATA element.
 
         :param file: the axml already pointing at the right offset
         :type file: bytesIO
-        :param header: the already read header of the chunk
-        :type header: ResChunkHeader
+        :param header_t: the already read header of the chunk
+        :type header_t: ResXMLHeader
         :return: an instance of itself
         :rtype: XmlcDataElement
         """
-        data_index = struct.unpack('<I', file.read(4))
-        typed_value_size = struct.unpack('<H', file.read(2))[0]
-        typed_value_res0 = struct.unpack('<B', file.read(1))[0]
-        typed_value_datatype = struct.unpack('<B', file.read(1))[0]
-        typed_value_data = struct.unpack('<I', file.read(4))[0]
-        return cls(header.type, header.header_size, header.total_size, data_index, typed_value_size, typed_value_res0,
-                   typed_value_datatype, typed_value_data)
+        cdata_data = file.read(12)
+        data_index = struct.unpack('<I', cdata_data)
+        typed_value_size = struct.unpack('<H', cdata_data)[0]
+        typed_value_res0 = struct.unpack('<B', cdata_data)[0]
+        typed_value_datatype = struct.unpack('<B', cdata_data)[0]
+        typed_value_data = struct.unpack('<I', cdata_data)[0]
+        return cls(header_t, data_index, typed_value_size, typed_value_res0,
+                   typed_value_datatype, typed_value_data, cdata_data)
 
 
 class ManifestStruct:
@@ -460,7 +504,7 @@ class ManifestStruct:
         :return: The AndroidManifest.xml as a string
         :rtype: str
         """
-        manifest = create_manifest(self.elements, self.string_pool.strdata)
+        manifest = create_manifest(self.elements, self.string_pool.string_list)
         return manifest
 
     @classmethod
@@ -500,15 +544,13 @@ def parse_next_header(file):
     :raises NotImplementedError: The chunk type identified is not supported
     :return: Dispatches to the appropriate processing method for each chunk type.
     """
-    chunk_header = ResChunkHeader.parse(file)
+    chunk_header_total = ResXMLHeader.parse(file)
+    chunk_header = chunk_header_total.header
     if chunk_header is None:  # end of file
         return None
-    if chunk_header.header_size > 8:
-        # read the rest of the header
-        file.read(chunk_header.header_size - 8)
     chunk_type = hex(chunk_header.type)
     if chunk_type in chunk_type_handlers:
-        return chunk_type_handlers[chunk_type](file, chunk_header)
+        return chunk_type_handlers[chunk_type](file, chunk_header_total)
     else:
         raise NotImplementedError(f"Unsupported chunk type: {chunk_type}")
 
