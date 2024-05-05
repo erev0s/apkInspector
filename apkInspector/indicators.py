@@ -106,8 +106,8 @@ def manifest_tampering_indicators(manifest):
     if chunkHeader.type != 3:
         manifest_tampering_indicators_dict['unexpected_starting_signature_of_androidmanifest'] = hex(chunkHeader.type)
     string_pool = StringPoolType.parse(manifest)
-    if len(string_pool.string_offsets) != string_pool.header.string_count:
-        manifest_tampering_indicators_dict['string_pool'] = {'string_count': string_pool.header.string_count,
+    if len(string_pool.string_offsets) != string_pool.str_header.string_count:
+        manifest_tampering_indicators_dict['string_pool'] = {'string_count': string_pool.str_header.string_count,
                                                              'real_string_count': len(string_pool.string_offsets)}
     XmlResourceMapType.parse(manifest)
     elements, dummy = process_elements(manifest)
@@ -116,8 +116,8 @@ def manifest_tampering_indicators(manifest):
             for attr in element.attributes:
                 if element.attrext[3] != 20:
                     manifest_tampering_indicators_dict['unexpected_attribute_size'] = True
-                if 0 <= attr.name_index < len(string_pool.strdata):
-                    if string_pool.strdata[attr.name_index] == "":
+                if 0 <= attr.name_index < len(string_pool.string_list):
+                    if string_pool.string_list[attr.name_index] == "":
                         manifest_tampering_indicators_dict['unexpected_attribute_names'] = True
     if dummy[0]:
         manifest_tampering_indicators_dict['invalid_data_between_elements'] = True
