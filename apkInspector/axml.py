@@ -143,6 +143,7 @@ class StringPoolType:
             file.read(1)
             u8len = u16len
             content = file.read(u8len).decode('utf-8', errors='replace')
+            # TODO: fixup is needed here as well, like for the utf16 case
 
         return content
 
@@ -521,11 +522,11 @@ def process_elements(file):
     :param file: the axml that will be processed
     :type file: BytesIO
     :return: Returns all the elements found as their corresponding classes and whether dummy data were found in between.
-    :rtype: set(list, int)
+    :rtype: set(list, set(bool, bool))
     """
     elements = []
-    dummy_data_between_elements = 0
-    wrong_end_namespace_size = 0
+    dummy_data_between_elements = False
+    wrong_end_namespace_size = False
     possible_types = {256, 257, 258, 259, 260}
     min_size = 8
     while True:
@@ -538,12 +539,12 @@ def process_elements(file):
         if cur_pos == 0 or (
                 _type in possible_types and _header_size >= min_size):
             if _size < min_size and _type == 257:
-                wrong_end_namespace_size = 1
+                wrong_end_namespace_size = True
             chunk_type = parse_next_header(file)
             elements.append(chunk_type)
             continue
         file.read(1)
-        dummy_data_between_elements = 1
+        dummy_data_between_elements = True
     return elements, (dummy_data_between_elements, wrong_end_namespace_size)
 
 

@@ -65,11 +65,14 @@ The library component of apkInspector is designed with extensibility in mind, al
  - Identify Tampering Indicators:
    - End of Central Directory record defined multiple times
    - Unknown compression methods
+   - Compressed entry with empty filename
    - Unexpected starting signature of AndroidManifest.xml
    - Tampered StringCount value
-   - Dummy attributes for elements
-   - Dummy data between elements
-   - Wrong sized end namespace element
+   - Strings surpassing maximum length
+   - Invalid data between elements
+   - Unexpected attribute size
+   - Unexpected attribute names or values
+   - Zero size header for namespace end nodes
 
 
 The command-line interface (CLI) serves as a practical illustration of how the methods provided by the library have been employed.
