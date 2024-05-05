@@ -209,7 +209,8 @@ class ApkInspectorTestCase(unittest.TestCase):
         mod_val = {'zip tampering': {'AndroidManifest.xml': {'central compression method': 30208, 'local compression '
                                                                                                   'method': 30208,
                                                              'actual compression method': 'STORED_TAMPERED'}},
-                   'manifest tampering': {'file_type': 0, 'string_pool': {'string count': 49, 'real string count': 32}}}
+                   'manifest tampering': {'unexpected_starting_signature_of_androidmanifest': '0x0', 'string_pool': {
+                       'string_count': 49, 'real_string_count': 32}}}
         orig = apk_tampering_check(self.apk_orig, False)
         mod = apk_tampering_check(self.apk_mod, False)
         self.assertEqual(orig, orig_val)
@@ -226,7 +227,7 @@ class ApkInspectorTestCase(unittest.TestCase):
 
     def test_tampering_zero_end_ns(self):
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        expected = {'zip tampering': {}, 'manifest tampering': {'wrong_end_namespace_size': 'found'}}
+        expected = {'zip tampering': {}, 'manifest tampering': {'zero_size_header_for_namespace_end_nodes': True}}
         with open(os.path.join(test_dir, 'res', 'minimal_zero_sized_end_ns.apk'), 'rb') as apk_file:
             res = apk_tampering_check(apk_file, False)
             self.assertEqual(res, expected)

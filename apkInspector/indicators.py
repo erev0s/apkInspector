@@ -38,7 +38,9 @@ def zip_tampering_indicators(apk_file, strict: bool):
         if count > 1:
             zip_tampering_indicators_dict['eocd_count'] = count
     zipentry_dict = ZipEntry.parse(apk_file).to_dict()
-
+    empty_keys = any(k == "" or k is None for k in zipentry_dict["central_directory"].keys())
+    if empty_keys:
+        zip_tampering_indicators_dict['empty_keys'] = empty_keys
     unique_keys = list(zipentry_dict["central_directory"].keys() ^ zipentry_dict["local_headers"].keys())
     common_keys = list(set(zipentry_dict["central_directory"].keys()) & set(zipentry_dict["local_headers"].keys()))
     if unique_keys:
@@ -102,25 +104,25 @@ def manifest_tampering_indicators(manifest):
     chunkHeader = ResChunkHeader.parse(manifest)
     manifest_tampering_indicators_dict = {}
     if chunkHeader.type != 3:
-        manifest_tampering_indicators_dict['file_type'] = chunkHeader.type
+        manifest_tampering_indicators_dict['unexpected_starting_signature_of_androidmanifest'] = hex(chunkHeader.type)
     string_pool = StringPoolType.parse(manifest)
     if len(string_pool.string_offsets) != string_pool.header.string_count:
-        manifest_tampering_indicators_dict['string_pool'] = {'string count': string_pool.header.string_count,
-                                                             'real string count': len(string_pool.string_offsets)}
+        manifest_tampering_indicators_dict['string_pool'] = {'string_count': string_pool.header.string_count,
+                                                             'real_string_count': len(string_pool.string_offsets)}
     XmlResourceMapType.parse(manifest)
     elements, dummy = process_elements(manifest)
     for element in elements:
         if isinstance(element, XmlStartElement):
             for attr in element.attributes:
                 if element.attrext[3] != 20:
-                    manifest_tampering_indicators_dict['dummy data between attributes'] = 'found'
+                    manifest_tampering_indicators_dict['unexpected_attribute_size'] = True
                 if 0 <= attr.name_index < len(string_pool.strdata):
                     if string_pool.strdata[attr.name_index] == "":
-                        manifest_tampering_indicators_dict['dummy attributes'] = 'found (verify manually)'
+                        manifest_tampering_indicators_dict['unexpected_attribute_names'] = True
     if dummy[0]:
-        manifest_tampering_indicators_dict['dummy_data_between_elements'] = 'found'
+        manifest_tampering_indicators_dict['invalid_data_between_elements'] = True
     if dummy[1]:
-        manifest_tampering_indicators_dict['wrong_end_namespace_size'] = 'found'
+        manifest_tampering_indicators_dict['zero_size_header_for_namespace_end_nodes'] = True
     return manifest_tampering_indicators_dict
 
 

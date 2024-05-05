@@ -95,7 +95,7 @@ def main():
                 show_and_save_info_of_headers(zipentry.to_dict()["local_headers"], apk_name, "local", args.export, True)
                 print(f"Local headers list complete. Export: {args.export}")
             elif args.list_central:
-                show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "local", args.export, True)
+                show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "central", args.export, True)
                 print(f"Central header list complete. Export: {args.export}")
             elif args.list_all:
                 show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "local", args.export, True)
