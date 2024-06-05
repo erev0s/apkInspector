@@ -43,18 +43,18 @@ class EndOfCentralDirectoryRecord:
         signature_offset = -1
         file_size = apk_file.seek(0, 2)
         while offset < file_size:
-            position = file_size - offset - chunk_size
-            if position < 0:
-                position = 0
+            position = max(0, file_size - offset - chunk_size)
             apk_file.seek(position)
             chunk = apk_file.read(chunk_size)
             if not chunk:
                 break
-            signature_offset = chunk.rfind(b'\x50\x4b\x05\x06')  # end of Central Directory File Header signature
+            signature_offset = chunk.rfind(b'\x50\x4b\x05\x06')  # EOCD signature
             if signature_offset != -1:
                 eo_central_directory_offset = position + signature_offset
-                break  # Found End of central directory record (EOCD) signature
-            offset += chunk_size
+                break  # Found EOCD signature
+            # Adjust offset to overlap by 4 bytes
+            offset += chunk_size - 4
+
         if signature_offset == -1:
             raise ValueError("End of central directory record (EOCD) signature not found")
         apk_file.seek(eo_central_directory_offset)
