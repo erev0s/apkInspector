@@ -37,6 +37,13 @@ class ApkInspectorTestCase(unittest.TestCase):
         self.assertEqual(eocd_orig, orig)
         self.assertEqual(eocd_mod, mod)
 
+    def test_find_eocd_at_offset_1026(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        expected_hash = "5599105c7d7a09e2d87c39282ae92c2c76c09eb4849ddf8bc27137b294e0afd0"
+        with open(os.path.join(test_dir, 'res', 'eocd_at_offset_1026.apk'), 'rb') as apk_file:
+            eocd = EndOfCentralDirectoryRecord.parse(apk_file).to_dict()
+            self.assertEqual(expected_hash, hashlib.sha256(str(eocd).encode('utf-8')).hexdigest())
+
     def test_eocd_from_dict(self):
         mod = {'signature': b'PK\x05\x06', 'number_of_this_disk': 0, 'disk_where_central_directory_starts': 0,
                'number_of_central_directory_records_on_this_disk': 24, 'total_number_of_central_directory_records': 24,
@@ -152,7 +159,7 @@ class ApkInspectorTestCase(unittest.TestCase):
 
     def test_zipentry_read_non_existing(self):
         zipentry = ZipEntry.parse(self.apk_orig)
-        with self.assertRaises(KeyError) as context:
+        with self.assertRaises(KeyError):
             zipentry.read("non-existing-entry")
 
     def test_zipentry_central_non_existing(self):
