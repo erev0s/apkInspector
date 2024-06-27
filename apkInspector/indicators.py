@@ -1,8 +1,9 @@
 import io
+import struct
 
 from .extract import extract_file_based_on_header_info
 from .headers import ZipEntry
-from .axml import ResChunkHeader, StringPoolType, process_elements, XmlResourceMapType, XmlStartElement
+from .axml import ResChunkHeader, StringPoolType, XmlResourceMapType, XmlStartElement, parse_next_header
 
 
 def count_eocd(apk_file):
@@ -86,10 +87,48 @@ def local_and_central_header_discrepancies(dict1, dict2, strict: bool):
     keys = []
     for key, values in dict(sorted(differences.items())).items():
         # strict checking or not: excluding these as they differ often
-        if not strict and key in ['extra_field', 'extra_field_length', 'crc32_of_uncompressed_data', 'compressed_size', 'uncompressed_size']:
+        if not strict and key in ['extra_field', 'extra_field_length', 'crc32_of_uncompressed_data', 'compressed_size',
+                                  'uncompressed_size']:
             continue
         keys.append(key)
     return keys
+
+
+def process_elements_indicators(file):
+    """
+    It starts processing the remaining chunks **after** the resource map chunk.
+    It also returns whether dummy data have been found between the elements, so it can be reported that the apk employed
+    this evasion technique. The difference between the process_elements method found in the axml module is that in this
+    case it does not take into account the total size of the element as stated in the header, but tries to parse the
+    contents regardless. This means that it will detect any dummy data injected after the actual data.
+
+    :param file: the axml that will be processed
+    :type file: BytesIO
+    :return: Returns all the elements found as their corresponding classes and whether dummy data were found in between.
+    :rtype: set(list, set(bool, bool))
+    """
+    elements = []
+    dummy_data_between_elements = False
+    wrong_end_namespace_size = False
+    possible_types = {256, 257, 258, 259, 260}
+    min_size = 8
+    while True:
+        cur_pos = file.tell()
+        if file.getbuffer().nbytes < cur_pos + min_size:
+            # we reached the end of the file
+            break
+        _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
+        file.seek(cur_pos)
+        if cur_pos == 0 or (
+                _type in possible_types and _header_size >= min_size):
+            if _size < min_size and _type == 257:
+                wrong_end_namespace_size = True
+            chunk_type = parse_next_header(file)
+            elements.append(chunk_type)
+            continue
+        file.read(1)
+        dummy_data_between_elements = True
+    return elements, (dummy_data_between_elements, wrong_end_namespace_size)
 
 
 def manifest_tampering_indicators(manifest):
@@ -110,7 +149,7 @@ def manifest_tampering_indicators(manifest):
         manifest_tampering_indicators_dict['string_pool'] = {'string_count': string_pool.str_header.string_count,
                                                              'real_string_count': len(string_pool.string_offsets)}
     XmlResourceMapType.parse(manifest)
-    elements, dummy = process_elements(manifest)
+    elements, dummy = process_elements_indicators(manifest)
     for element in elements:
         if isinstance(element, XmlStartElement):
             for attr in element.attributes:

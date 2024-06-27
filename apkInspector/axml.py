@@ -112,6 +112,16 @@ class StringPoolType:
         return string_offsets
 
     @classmethod
+    def read_string_offset(cls, file, position):
+        try:
+            file.seek(position * 4)
+            string_offset = struct.unpack('<I', file.read(4))[0]
+            return string_offset
+        except Exception as e:
+            logging.error(f"String offset at position {position} failed to be read: {e}")
+            return None
+
+    @classmethod
     def decode_stringpool_mixed_string(cls, file, is_utf8, end_stringpool_offset):
         """
         Handling the different encoding possibilities that can be met.
@@ -120,6 +130,8 @@ class StringPoolType:
         :type file: bytesIO
         :param is_utf8: boolean to check if a utf8 string is expected
         :type is_utf8: bool
+        :param end_stringpool_offset:
+        :type end_stringpool_offset: int
         :return: Returns the decoded string
         :rtype: str
         """
@@ -175,6 +187,28 @@ class StringPoolType:
         return strings
 
     @classmethod
+    def read_string(cls, file, string_offset, strings_start, is_utf8, end_stringpool_offset):
+        absolute_offset = strings_start + string_offset - 28
+        if file.getbuffer().nbytes < absolute_offset:
+            return None
+        file.seek(absolute_offset)
+        string = cls.decode_stringpool_mixed_string(file, is_utf8, end_stringpool_offset)
+        return string
+
+    @classmethod
+    def parse_lite(cls, file):
+        ResStringPool_header = ResStringPoolHeader.parse(file)
+        string_pool_data = read_remaining(file, ResStringPool_header.header)
+        while True:  # read any null bytes remaining
+            cur_pos = file.tell()
+            if file.read(2) == b'\x80\x01':
+                file.seek(cur_pos)
+                break
+            file.seek(cur_pos)
+            file.read(1)
+        return ResStringPool_header, string_pool_data
+
+    @classmethod
     def parse(cls, file):
         """
         Parse the string pool to acquire the strings used within the axml.
@@ -223,6 +257,12 @@ class XmlResourceMapType:
         self.data = resids_data
 
     @classmethod
+    def parse_lite(cls, file):
+        resource_map_header = ResChunkHeader.parse(file)
+        resource_map_data = read_remaining(file, resource_map_header)
+        return resource_map_header, resource_map_data
+
+    @classmethod
     def parse(cls, file):
         """
         Parse the resource map and get the resource IDs.
@@ -234,7 +274,7 @@ class XmlResourceMapType:
         """
         header = ResChunkHeader.parse(file)
         num_resids = (header.total_size - header.header_size) // 4
-        resids_data = file.read(num_resids*4)
+        resids_data = file.read(num_resids * 4)
         chunks = [resids_data[i:i + 4] for i in range(0, len(resids_data), 4)]
         resids = [struct.unpack('<I', chunk)[0] for chunk in chunks]
 
@@ -294,7 +334,7 @@ class XmlStartNamespace:
         :rtype: XmlStartNamespace
         """
         num_exts = (header_t.header.total_size - header_t.header.header_size) // 4
-        ext_data = file.read(num_exts*4)
+        ext_data = file.read(num_exts * 4)
         chunks = [ext_data[i:i + 4] for i in range(0, len(ext_data), 4)]
         ext = [struct.unpack('<I', chunk)[0] for chunk in chunks]
         return cls(header_t, ext, ext_data)
@@ -380,7 +420,7 @@ class XmlAttributeElement:
             attrs.append(cls(full_namespace_index, name_index, raw_value_index, typed_value_size, typed_value_res0,
                              typed_value_datatype, typed_value_data))
             if file.tell() - tn != attr_size:  # check for any dummy data in between attributes
-                file.read(attr_size-(file.tell() - tn))
+                file.read(attr_size - (file.tell() - tn))
         return attrs
 
 
@@ -413,10 +453,8 @@ class XmlStartElement:
             '<IIHHHHHH', attrext_data)
         attrext = [full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index,
                    style_index]
-        cp = file.tell()
-        attributes_data = file.read(attr_size*attr_count)
-        file.seek(cp)
-        attributes = XmlAttributeElement.parse(file, attr_count, attr_size)
+        attributes_data = file.read(attr_size * attr_count)
+        attributes = XmlAttributeElement.parse(io.BytesIO(attributes_data), attr_count, attr_size)
         return cls(header_t, attrext, attributes, (attrext_data + attributes_data))
 
 
@@ -520,16 +558,16 @@ class ManifestStruct:
         header = ResChunkHeader.parse(file)
         string_pool = StringPoolType.parse(file)
         resource_map = XmlResourceMapType.parse(file)
-        elements = process_elements(file)[0]
+        elements = process_elements(file)
         return cls(header, string_pool, resource_map, elements)
 
 
 chunk_type_handlers = {
-    '0x100': XmlStartNamespace.parse,   # RES_XML_START_NAMESPACE_TYPE
-    '0x101': XmlEndNamespace.parse,     # RES_XML_END_NAMESPACE_TYPE
-    '0x102': XmlStartElement.parse,     # RES_XML_START_ELEMENT_TYPE
-    '0x103': XmlEndElement.parse,       # RES_XML_END_ELEMENT_TYPE
-    '0x104': XmlcDataElement.parse,     # RES_XML_CDATA_TYPE
+    '0x100': XmlStartNamespace.parse,  # RES_XML_START_NAMESPACE_TYPE
+    '0x101': XmlEndNamespace.parse,  # RES_XML_END_NAMESPACE_TYPE
+    '0x102': XmlStartElement.parse,  # RES_XML_START_ELEMENT_TYPE
+    '0x103': XmlEndElement.parse,  # RES_XML_END_ELEMENT_TYPE
+    '0x104': XmlcDataElement.parse,  # RES_XML_CDATA_TYPE
 }
 
 
@@ -555,39 +593,33 @@ def parse_next_header(file):
         raise NotImplementedError(f"Unsupported chunk type: {chunk_type}")
 
 
-def process_elements(file):
+def process_elements(file, num_of_elements=None):
     """
     It starts processing the remaining chunks **after** the resource map chunk.
-    It also returns whether dummy data have been found between the elements, so it can be reported that the apk employed
-    this evasion technique.
 
     :param file: the axml that will be processed
     :type file: BytesIO
+    :param num_of_elements: how many elements should it process
+    :type num_of_elements: int
     :return: Returns all the elements found as their corresponding classes and whether dummy data were found in between.
     :rtype: set(list, set(bool, bool))
     """
     elements = []
-    dummy_data_between_elements = False
-    wrong_end_namespace_size = False
-    possible_types = {256, 257, 258, 259, 260}
-    min_size = 8
     while True:
         cur_pos = file.tell()
-        if file.getbuffer().nbytes < cur_pos + min_size:
+        if file.getbuffer().nbytes < cur_pos + 8:
             # we reached the end of the file
             break
-        _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
-        file.seek(cur_pos)
-        if cur_pos == 0 or (
-                _type in possible_types and _header_size >= min_size):
-            if _size < min_size and _type == 257:
-                wrong_end_namespace_size = True
-            chunk_type = parse_next_header(file)
-            elements.append(chunk_type)
+        check_reached_element(file)
+        resXMLTree_node = ResXMLHeader.parse(file)
+        cur_elem_data = read_remaining(file, resXMLTree_node.header)
+        elem_data = resXMLTree_node.header.data + resXMLTree_node.data + cur_elem_data
+        elements.append(parse_next_header(io.BytesIO(elem_data)))
+        if num_of_elements is None:
             continue
-        file.read(1)
-        dummy_data_between_elements = True
-    return elements, (dummy_data_between_elements, wrong_end_namespace_size)
+        if len(elements) == num_of_elements:
+            break
+    return elements
 
 
 def process_attributes(attributes, string_data, ns_dict):
@@ -722,3 +754,129 @@ def parse_apk_for_manifest(apk_file, save: bool = False):
             xml_file.write(manifest)
         print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
     return manifest
+
+
+def parse_manifest_lite(manifest, num_of_elements=None):
+    """
+    Parse the AndroidManifest with a limit on the elements to be parsed after the string pool. The goal of this method
+    is the make it possible to partially parse the AndroidManifest and allow faster parsing when needed.
+
+    :param manifest: The manifest to be processed
+    :type manifest: bytesIO
+    :param num_of_elements: How many elements of the manifest to process. Usually 3 are enough to get basic info about it.
+    :type num_of_elements: int
+    :return: A tuple containing four elements:
+             - `ResChunkHeader`: The initial header parsed.
+             - `list`: A list containing:
+                 - `ResStringPoolHeader`: The header of the string pool.
+                 - `string_pool_data`: The rest of the string pool except the header, in bytes.
+             - `list`: A list containing:
+                 - `ResChunkHeader`: The header of the resource map.
+                 - `resource_map_data`: The rest of the resource map, except the header, in bytes.
+             - `elements`: The rest of the chunks after the resource map as a list of blobs of bytes.
+    :rtype: tuple (ResChunkHeader_init, list, list, list)
+    """
+    # ResChunk_header
+    ResChunkHeader_init = ResChunkHeader.parse(manifest)
+    # StringPoolType
+    ResStringPool_header, string_pool_data = StringPoolType.parse_lite(manifest)
+    # XmlResourceMapType
+    resource_map_header, resource_map_data = XmlResourceMapType.parse_lite(manifest)
+    # elements, elements are treated as a blob of bytes all together
+    elements = []
+    while True:
+        cur_pos = manifest.tell()
+        if manifest.getbuffer().nbytes < cur_pos + 8:
+            # we reached the end of the file
+            break
+        check_reached_element(manifest)
+        resXMLTree_node = ResXMLHeader.parse(manifest)
+        cur_elem_data = read_remaining(manifest, resXMLTree_node.header)
+        elem_data = resXMLTree_node.header.data + resXMLTree_node.data + cur_elem_data
+        elements.append(elem_data)
+        if num_of_elements is None:
+            continue
+        if len(elements) == num_of_elements:
+            break
+
+    return ResChunkHeader_init, [ResStringPool_header, string_pool_data], [resource_map_header,
+                                                                           resource_map_data], elements
+
+
+def read_remaining(file: io.BytesIO, header: ResChunkHeader):
+    remaining_to_be_read = header.total_size - header.header_size
+    return file.read(remaining_to_be_read)
+
+
+def check_reached_element(file: io.BytesIO):
+    possible_types = {256, 257, 258, 259, 260}
+    min_size = 8
+    while True:
+        cur_pos = file.tell()
+        if file.getbuffer().nbytes < cur_pos + min_size:  # we reached the end of the file
+            break
+        _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
+        file.seek(cur_pos)
+        if _type in possible_types and _header_size >= min_size:
+            return True
+        file.read(1)
+
+
+def get_manifest_lite_info(manifest: io.BytesIO, num_of_elements: int):
+    (ResChunkHeader_init,
+     [string_pool_ResChunkHeader, string_pool_data],
+     [resource_map_header, resource_map_data], elements) = parse_manifest_lite(manifest,
+                                                                               num_of_elements=num_of_elements)
+    end_stringpool_offset = string_pool_ResChunkHeader.header.total_size + 8
+    strings_start = string_pool_ResChunkHeader.strings_start
+    is_utf8 = bool(string_pool_ResChunkHeader.flags & (1 << 8))
+    attributes_dict = {}
+    for element in elements:
+        ce = parse_next_header(io.BytesIO(element))
+        if isinstance(ce, XmlStartElement):
+            for attr in ce.attributes:
+                if isinstance(attr, XmlAttributeElement):
+                    attr_name = get_string_from_pool(attr.name_index, io.BytesIO(string_pool_data),
+                                                     end_stringpool_offset, strings_start, is_utf8)
+                    attribute_value = get_attribute_value(attr_name, attr, end_stringpool_offset, strings_start,
+                                                          is_utf8, io.BytesIO(string_pool_data))
+                    attributes_dict[attr_name] = attribute_value
+    return attributes_dict
+
+
+def get_string_from_pool(position, string_pool_data, end_stringpool_offset, strings_start, is_utf8):
+    try:
+        string_offset = StringPoolType.read_string_offset(string_pool_data, position)
+        if string_offset is None:
+            return None
+        return StringPoolType.read_string(string_pool_data, string_offset, strings_start, is_utf8,
+                                          end_stringpool_offset)
+    except Exception as e:
+        logging.exception(f"Exception while retrieving string from pool: {e}")
+        return None
+
+
+def get_attribute_value(attr_name, attribute, end_stringpool_offset, strings_start, is_utf8, string_pool_data):
+    try:
+        if attribute.typed_value_datatype == 1:  # reference type
+            return f"@{attribute.typed_value_data}"
+        elif attribute.typed_value_datatype == 3:  # string type
+            str_pool_loc = get_string_from_pool(attribute.typed_value_data, string_pool_data, end_stringpool_offset,
+                                                strings_start, is_utf8)
+            return escape_xml_entities(str_pool_loc) if str_pool_loc else str(attribute.typed_value_data)
+        elif attribute.typed_value_datatype == 4:  # float type
+            str_pool_loc = get_string_from_pool(attribute.typed_value_data, string_pool_data, end_stringpool_offset,
+                                                strings_start, is_utf8)
+            if not str_pool_loc:
+                str_pool_loc = get_string_from_pool(attribute.raw_value_index, string_pool_data, end_stringpool_offset,
+                                                    strings_start, is_utf8)
+            return str_pool_loc if str_pool_loc else str(attribute.typed_value_data)
+        elif attribute.typed_value_datatype == 17:  # int-hex type
+            return f"0x{attribute.typed_value_data:08X}"
+        elif attribute.typed_value_datatype == 18:  # boolean type
+            return "true" if attribute.typed_value_data else "false"
+        else:
+            return str(attribute.typed_value_data)
+    except Exception as e:
+        logging.exception(f"Exception processing attribute {attr_name}: {e}")
+        return str(attribute.typed_value_data)

@@ -3,7 +3,7 @@ import os
 import unittest
 import hashlib
 
-from apkInspector.axml import get_manifest, ManifestStruct
+from apkInspector.axml import ManifestStruct, parse_manifest_lite, get_manifest_lite_info
 from apkInspector.headers import ZipEntry
 
 
@@ -39,3 +39,38 @@ class ApkInspectorPackTestCase(unittest.TestCase):
         calculated_hash = hashlib.sha256(whole_apk).hexdigest()
         self.assertEqual(hash_orig, calculated_hash)
 
+    def test_lite(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        pth = os.path.join(test_dir, 'res', 'minimal_def_mod.apk')
+        zipentry = ZipEntry.parse(pth, False)
+        manifest_bytes = zipentry.read('AndroidManifest.xml')
+        manifest_object = ManifestStruct.parse((io.BytesIO(manifest_bytes)))
+
+        (ResChunkHeader_data_init,
+         [string_pool_ResChunkHeader_data, string_pool_data],
+         [resource_map_header, resource_map_data], elements) = parse_manifest_lite(io.BytesIO(manifest_bytes))
+
+        # checks
+        self.assertEqual(manifest_object.header.data, ResChunkHeader_data_init.data)
+        self.assertEqual(manifest_object.string_pool.str_header.header.data,
+                         string_pool_ResChunkHeader_data.header.data)
+        self.assertEqual(manifest_object.string_pool.str_header.data, string_pool_ResChunkHeader_data.data)
+        self.assertEqual(manifest_object.string_pool.data, string_pool_data)
+        self.assertEqual(manifest_object.resource_map.header.data, resource_map_header.data)
+        self.assertEqual(manifest_object.resource_map.data, resource_map_data)
+
+    def test_lite_info(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        pth = os.path.join(test_dir, 'res', 'minimal_def_mod.apk')
+        zipentry = ZipEntry.parse(pth, False)
+        manifest_bytes = zipentry.read('AndroidManifest.xml')
+        liteInfo = get_manifest_lite_info(io.BytesIO(manifest_bytes), 2)
+        self.assertEqual(liteInfo, {'versionCode': '1', 'versionName': '1.0', 'compileSdkVersion': '33',
+                                    'compileSdkVersionCodename': '13', 'package': 'com.erev0s.minimal',
+                                    'platformBuildVersionCode': '33', 'platformBuildVersionName': '13'})
+
+        liteInfo = get_manifest_lite_info(io.BytesIO(manifest_bytes), 3)
+        self.assertEqual(liteInfo, {'versionCode': '1', 'versionName': '1.0', 'compileSdkVersion': '33',
+                                    'compileSdkVersionCodename': '13', 'package': 'com.erev0s.minimal',
+                                    'platformBuildVersionCode': '33', 'platformBuildVersionName': '13',
+                                    'minSdkVersion': '24', 'targetSdkVersion': '33'})
