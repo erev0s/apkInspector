@@ -236,11 +236,9 @@ class CentralDirectory:
             internal_file_attributes = struct.unpack('<H', apk_file.read(2))[0]
             external_file_attributes = struct.unpack('<I', apk_file.read(4))[0]
             relative_offset_of_local_file_header = struct.unpack('<I', apk_file.read(4))[0]
-            filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8')
-            extra_field = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8',
-                                                                                                                'ignore')
-            file_comment = struct.unpack(f'<{file_comment_length}s', apk_file.read(file_comment_length))[0].decode(
-                'utf-8', 'ignore')
+            filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8', 'ignore')
+            extra_field = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8', 'ignore')
+            file_comment = struct.unpack(f'<{file_comment_length}s', apk_file.read(file_comment_length))[0].decode('utf-8', 'ignore')
             offset_in_central_directory = c_offset
 
             central_directory_entry = CentralDirectoryEntry(
