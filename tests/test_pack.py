@@ -3,7 +3,7 @@ import os
 import unittest
 import hashlib
 
-from apkInspector.axml import ManifestStruct, parse_manifest_lite, get_manifest_lite_info
+from apkInspector.axml import ManifestStruct, get_manifest_lite_info
 from apkInspector.headers import ZipEntry
 
 
@@ -48,7 +48,7 @@ class ApkInspectorPackTestCase(unittest.TestCase):
 
         (ResChunkHeader_data_init,
          [string_pool_ResChunkHeader_data, string_pool_data],
-         [resource_map_header, resource_map_data], elements) = parse_manifest_lite(io.BytesIO(manifest_bytes))
+         [resource_map_header, resource_map_data], elements) = ManifestStruct.parse_lite(io.BytesIO(manifest_bytes))
 
         # checks
         self.assertEqual(manifest_object.header.data, ResChunkHeader_data_init.data)

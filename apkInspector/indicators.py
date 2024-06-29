@@ -3,7 +3,7 @@ import struct
 
 from .extract import extract_file_based_on_header_info
 from .headers import ZipEntry
-from .axml import ResChunkHeader, StringPoolType, XmlResourceMapType, XmlStartElement, parse_next_header
+from .axml import ResChunkHeader, StringPoolType, XmlResourceMapType, XmlStartElement, ManifestStruct
 
 
 def count_eocd(apk_file):
@@ -123,7 +123,7 @@ def process_elements_indicators(file):
                 _type in possible_types and _header_size >= min_size):
             if _size < min_size and _type == 257:
                 wrong_end_namespace_size = True
-            chunk_type = parse_next_header(file)
+            chunk_type = ManifestStruct.parse_next_header(file)
             elements.append(chunk_type)
             continue
         file.read(1)
