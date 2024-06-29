@@ -331,7 +331,7 @@ class LocalHeaderRecord:
             file_name_length = struct.unpack('<H', apk_file.read(2))[0]
             extra_field_length = struct.unpack('<H', apk_file.read(2))[0]
             try:
-                filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8')
+                filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8', 'ignore')
                 extra_field = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8', 'ignore')
             except:
                 filename = entry_of_interest.filename
