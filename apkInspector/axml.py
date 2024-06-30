@@ -857,7 +857,7 @@ def get_manifest(raw_manifest):
     return manifest_object.get_manifest()
 
 
-def parse_apk_for_manifest(inc_apk, raw: bool = False, lite: bool = False):
+def parse_apk_for_manifest(inc_apk, raw: bool = False, lite: bool = False, num_of_elements: int = 3):
     """
     Helper method to retrieve the AndroidManifest directly from an APK, either by providing the APK itself or the path.
 
@@ -867,6 +867,8 @@ def parse_apk_for_manifest(inc_apk, raw: bool = False, lite: bool = False):
     :type raw: bool
     :param lite: Boolean parameter to define whether the lite parsing would occur or not
     :type lite: bool
+    :param num_of_elements: Number of elements to parse from the APK
+    :type num_of_elements: int
     :return: Returns the AndroidManifest.xml as string
     :rtype: str
     """
@@ -882,7 +884,7 @@ def parse_apk_for_manifest(inc_apk, raw: bool = False, lite: bool = False):
                                                        entry_manifest.central_directory.entries[
                                                            "AndroidManifest.xml"].to_dict())[0]
     if lite:
-        manifest = get_manifest_lite(io.BytesIO(manifest_bytes), num_of_elements=3)
+        manifest = get_manifest_lite(io.BytesIO(manifest_bytes), num_of_elements=num_of_elements)
     else:
         manifest = get_manifest(io.BytesIO(manifest_bytes))
     return manifest

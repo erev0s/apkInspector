@@ -3,7 +3,7 @@ import os
 import unittest
 import hashlib
 
-from apkInspector.axml import ManifestStruct, get_manifest_lite
+from apkInspector.axml import ManifestStruct, get_manifest_lite, parse_apk_for_manifest
 from apkInspector.headers import ZipEntry
 
 
@@ -74,3 +74,16 @@ class ApkInspectorPackTestCase(unittest.TestCase):
                                     'compileSdkVersionCodename': '13', 'package': 'com.erev0s.minimal',
                                     'platformBuildVersionCode': '33', 'platformBuildVersionName': '13',
                                     'minSdkVersion': '24', 'targetSdkVersion': '33'})
+
+    def test_parse_apk_lite(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        pth = os.path.join(test_dir, 'res', 'minimal_def_mod.apk')
+        expected = {'versionCode': '1', 'versionName': '1.0', 'compileSdkVersion': '33',
+                    'compileSdkVersionCodename': '13', 'package': 'com.erev0s.minimal',
+                    'platformBuildVersionCode': '33', 'platformBuildVersionName': '13', 'minSdkVersion': '24',
+                    'targetSdkVersion': '33'}
+        self.assertEqual(parse_apk_for_manifest(pth, lite=True), expected)
+
+
+if __name__ == '__main__':
+    unittest.main()
