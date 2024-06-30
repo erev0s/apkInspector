@@ -188,6 +188,22 @@ class StringPoolType:
 
     @classmethod
     def read_string(cls, file, string_offset, strings_start, is_utf8, end_stringpool_offset):
+        """
+        Read a string from the string pool when the offset of it is known already.
+
+        :param file: the string pool data parsed as bytes
+        :type file: io.bytesIO
+        :param string_offset: the offset at which the string is located in the string pool
+        :type string_offset: int
+        :param strings_start: the offset at which the string data starts
+        :type strings_start: int
+        :param is_utf8: boolean to check if a utf8 string is expected
+        :type is_utf8: bool
+        :param end_stringpool_offset: the offset at which the string pool ends
+        :type end_stringpool_offset: int
+        :return: Returns the string or None
+        :rtype: str or None
+        """
         absolute_offset = strings_start + string_offset - 28
         if file.getbuffer().nbytes < absolute_offset:
             return None
@@ -197,6 +213,23 @@ class StringPoolType:
 
     @classmethod
     def get_string_from_pool(cls, position, string_pool_data, end_stringpool_offset, strings_start, is_utf8):
+        """
+        Retrieve a single string from the String Pool, given its position. It first gets the correct offset of the
+        string and then reads the string.
+
+        :param position: The position of the string to be retrieved
+        :type position: int
+        :param string_pool_data: the string pool data parsed as bytes
+        :type string_pool_data: io.BytesIO
+        :param end_stringpool_offset: the offset at which the string pool ends
+        :type end_stringpool_offset: int
+        :param strings_start: the offset at which the string data starts
+        :type strings_start: int
+        :param is_utf8: boolean to check if a utf8 string is expected
+        :type is_utf8: bool
+        :return: Returns the string or None
+        :rtype: str or None
+        """
         try:
             string_offset = cls.read_string_offset(string_pool_data, position)
             if string_offset is None:
@@ -208,6 +241,14 @@ class StringPoolType:
 
     @classmethod
     def parse_lite(cls, file):
+        """
+        A 'lite' parser that gets the header and then reads the rest of the chunk as a blob of bytes.
+
+        :param file: the AndroidManifest.xml file
+        :type file: bytesIO
+        :return: returns the header and the chunk data
+        :rtype: tuple(ResStringPoolHeader, bytes)
+        """
         ResStringPool_header = ResStringPoolHeader.parse(file)
         string_pool_data = read_remaining(file, ResStringPool_header.header)
         while True:  # read any null bytes remaining
@@ -269,6 +310,14 @@ class XmlResourceMapType:
 
     @classmethod
     def parse_lite(cls, file):
+        """
+        A 'lite' parser that gets the header and then reads the rest of the chunk as a blob of bytes.
+
+        :param file: the AndroidManifest.xml file
+        :type file: bytesIO
+        :return: returns the header and the chunk data
+        :rtype: tuple(ResChunkHeader, bytes)
+        """
         resource_map_header = ResChunkHeader.parse(file)
         resource_map_data = read_remaining(file, resource_map_header)
         return resource_map_header, resource_map_data
@@ -548,6 +597,13 @@ class ManifestStruct:
 
     @staticmethod
     def check_reached_element(file: io.BytesIO):
+        """
+        Static method to check if the next element right after the resource map chunk has been reached. There is only a
+        set of possible elements after the resource map chunk that could be met.
+
+        :param file: The AndroidManifest file
+        :type file: io.BytesIO
+        """
         possible_types = {256, 257, 258, 259, 260}
         min_size = 8
         while True:
@@ -676,6 +732,20 @@ chunk_type_handlers = {
 }
 
 
+def read_remaining(file: io.BytesIO, header: ResChunkHeader):
+    """
+
+    :param file: the current file that is being processed
+    :type file: io.BytesIO
+    :param header: the header of the current chunk of instance ResChunkHeader
+    :type header: ResChunkHeader
+    :return: Returns the remaining bytes of the chunk except the header
+    :rtype: bytes
+    """
+    remaining_to_be_read = header.total_size - header.header_size
+    return file.read(remaining_to_be_read)
+
+
 def process_attributes(attributes, string_list, ns_dict):
     """
     Helps in processing the representation of attributes found in each element of the axml. It should be noted that not
@@ -728,7 +798,7 @@ def process_attributes(attributes, string_list, ns_dict):
 
 def create_manifest(elements, string_list):
     """
-    Method to create the AndroidManifest.xml file based on the elements discovered from the processed APK
+    Method to create the readable XML AndroidManifest.xml file based on the elements discovered from the processed APK
 
     :param elements: The parsed elements as returned by process_elements()[0]
     :type elements: list
@@ -787,32 +857,50 @@ def get_manifest(raw_manifest):
     return manifest_object.get_manifest()
 
 
-def parse_apk_for_manifest(apk_file, save: bool = False):
+def parse_apk_for_manifest(inc_apk, raw: bool = False, lite: bool = False):
     """
-    Helper method to retrieve the AndroidManifest.xml directly from an APK path
+    Helper method to retrieve the AndroidManifest directly from an APK, either by providing the APK itself or the path.
 
-    :param apk_file: The path of the APK file
-    :type apk_file: str
-    :param save: Boolean parameter to define whether to save the manifest or not
-    :type save: bool
+    :param inc_apk: The path of the APK file or the APK itself
+    :type inc_apk: str
+    :param raw: Boolean parameter to define whether the manifest is provided as string or bytes
+    :type raw: bool
+    :param lite: Boolean parameter to define whether the lite parsing would occur or not
+    :type lite: bool
     :return: Returns the AndroidManifest.xml as string
     :rtype: str
     """
-    with open(apk_file, 'rb') as apk:
-        zipentry = ZipEntry.parse(apk)
-        cd_h_of_file = zipentry.get_central_directory_entry_dict("AndroidManifest.xml")
-        local_header_of_file = zipentry.get_local_header_dict("AndroidManifest.xml")
-        extracted_data = io.BytesIO(
-            extract_file_based_on_header_info(apk, local_header_of_file, cd_h_of_file)[0])
-    manifest = get_manifest(extracted_data)
-    if save:
-        with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
-            xml_file.write(manifest)
-        print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
+    if raw:
+        apk_file = inc_apk
+    else:
+        with open(inc_apk, 'rb') as apk:
+            apk_file = io.BytesIO(apk.read())
+
+    entry_manifest = ZipEntry.parse_single(apk_file, "AndroidManifest.xml")
+    manifest_local = entry_manifest.local_headers["AndroidManifest.xml"].to_dict()
+    manifest_bytes = extract_file_based_on_header_info(apk_file, manifest_local,
+                                                       entry_manifest.central_directory.entries[
+                                                           "AndroidManifest.xml"].to_dict())[0]
+    if lite:
+        manifest = get_manifest_lite(io.BytesIO(manifest_bytes), num_of_elements=3)
+    else:
+        manifest = get_manifest(io.BytesIO(manifest_bytes))
     return manifest
 
 
-def get_manifest_lite_info(manifest: io.BytesIO, num_of_elements: int):
+def get_manifest_lite(manifest: io.BytesIO, num_of_elements: int):
+    """
+    A method to provide 'lite' parsing of the AndroidManifest in order to retrieve a few details as fast as possible.
+    Based on the integer 'num_of_elements' being passed as a parameter, it will attempt to fetch this many chunks right
+    after the 'resource map' chunk and will get the attributes values of these elements if they are of instance XmlStartElement
+
+    :param manifest: The manifest to be processed
+    :type manifest: io.BytesIO
+    :param num_of_elements:
+    :type num_of_elements: int
+    :return: Returns a dictionary of the attributes discovered
+    :rtype: dict
+    """
     (ResChunkHeader_init,
      [string_pool_ResChunkHeader, string_pool_data],
      [resource_map_header, resource_map_data], elements) = ManifestStruct.parse_lite(manifest,
@@ -834,6 +922,24 @@ def get_manifest_lite_info(manifest: io.BytesIO, num_of_elements: int):
 
 
 def get_attribute_value(attr_name, attribute, end_stringpool_offset, strings_start, is_utf8, string_pool_data):
+    """
+    Gets the value for a single attribute
+
+    :param attr_name: The attribute name as it has been retrieved by the string pool
+    :type attr_name: str
+    :param attribute: the parsed attribute itself
+    :type attribute: XmlAttributeElement
+    :param end_stringpool_offset: The end of string pool offset
+    :type end_stringpool_offset: int
+    :param strings_start: the strings start offset for the string pool
+    :type strings_start: int
+    :param is_utf8: boolean to check if a utf8 string is expected
+    :type is_utf8: bool
+    :param string_pool_data: The string pool data as io.BytesIO
+    :type string_pool_data: io.BytesIO
+    :return: returns the attribute value
+    :rtype: str
+    """
     try:
         if attribute.typed_value_datatype == 1:  # reference type
             return f"@{attribute.typed_value_data}"
@@ -860,8 +966,3 @@ def get_attribute_value(attr_name, attribute, end_stringpool_offset, strings_sta
     except Exception as e:
         logging.exception(f"Exception processing attribute {attr_name}: {e}")
         return str(attribute.typed_value_data)
-
-
-def read_remaining(file: io.BytesIO, header: ResChunkHeader):
-    remaining_to_be_read = header.total_size - header.header_size
-    return file.read(remaining_to_be_read)

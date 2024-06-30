@@ -3,7 +3,7 @@ import os
 import unittest
 import hashlib
 
-from apkInspector.axml import ManifestStruct, get_manifest_lite_info
+from apkInspector.axml import ManifestStruct, get_manifest_lite
 from apkInspector.headers import ZipEntry
 
 
@@ -64,12 +64,12 @@ class ApkInspectorPackTestCase(unittest.TestCase):
         pth = os.path.join(test_dir, 'res', 'minimal_def_mod.apk')
         zipentry = ZipEntry.parse(pth, False)
         manifest_bytes = zipentry.read('AndroidManifest.xml')
-        liteInfo = get_manifest_lite_info(io.BytesIO(manifest_bytes), 2)
+        liteInfo = get_manifest_lite(io.BytesIO(manifest_bytes), 2)
         self.assertEqual(liteInfo, {'versionCode': '1', 'versionName': '1.0', 'compileSdkVersion': '33',
                                     'compileSdkVersionCodename': '13', 'package': 'com.erev0s.minimal',
                                     'platformBuildVersionCode': '33', 'platformBuildVersionName': '13'})
 
-        liteInfo = get_manifest_lite_info(io.BytesIO(manifest_bytes), 3)
+        liteInfo = get_manifest_lite(io.BytesIO(manifest_bytes), 3)
         self.assertEqual(liteInfo, {'versionCode': '1', 'versionName': '1.0', 'compileSdkVersion': '33',
                                     'compileSdkVersionCodename': '13', 'package': 'com.erev0s.minimal',
                                     'platformBuildVersionCode': '33', 'platformBuildVersionName': '13',
