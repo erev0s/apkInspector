@@ -1,0 +1,13 @@
+[run]
+omit =
+    */helpers.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug
+    raise NotImplementedError
+
+[html]
+directory = htmlcov
