@@ -681,23 +681,15 @@ class ManifestStruct:
     def parse_lite(manifest, num_of_elements=None):
         """
         Parse the AndroidManifest with a limit on the elements to be parsed after the string pool. The goal of this method
-        is the make it possible to partially parse the AndroidManifest and allow faster parsing when needed. Only the
-        header is parsed from each chunk and the rest are there as blobs of bytes.
+        is to make it possible to partially parse the AndroidManifest and allow faster parsing when needed. Only the
+        header is parsed from each chunk, and the rest are there as blobs of bytes.
 
         :param manifest: The manifest to be processed
         :type manifest: bytesIO
         :param num_of_elements: How many elements of the manifest to process. Usually 3 are enough to get basic info about it.
         :type num_of_elements: int
-        :return: A tuple containing four elements:
-                 - `ResChunkHeader`: The initial header parsed.
-                 - `list`: A list containing:
-                     - `ResStringPoolHeader`: The header of the string pool.
-                     - `string_pool_data`: The rest of the string pool except the header, in bytes.
-                 - `list`: A list containing:
-                     - `ResChunkHeader`: The header of the resource map.
-                     - `resource_map_data`: The rest of the resource map, except the header, in bytes.
-                 - `elements`: The rest of the chunks after the resource map as a list of blobs of bytes.
-        :rtype: tuple (ResChunkHeader_init, list, list, list)
+        :return: A tuple containing four elements: ResChunkHeader, [ResStringPoolHeader, string_pool_data], [ResChunkHeader, resource_map_data], elements
+        :rtype: tuple (ResChunkHeader_init, [ResStringPoolHeader, bytes], [ResChunkHeader, bytes], list of bytes)
         """
         ResChunkHeader_init = ResChunkHeader.parse(manifest)
         ResStringPool_header, string_pool_data = StringPoolType.parse_lite(manifest)

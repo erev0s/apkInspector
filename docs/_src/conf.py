@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'apkInspector'
-copyright = '2023, erev0s'
+copyright = '2024, erev0s'
 author = 'erev0s'
 
 # -- General configuration ---------------------------------------------------
