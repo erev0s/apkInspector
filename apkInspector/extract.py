@@ -42,9 +42,13 @@ def extract_file_based_on_header_info(apk_file, local_header_info, central_direc
         # -15 for windows size due to raw stream with no header or trailer
         extracted_data = zlib.decompress(compressed_data, -15)
         indicator = 'DEFLATED'
+    elif compressed_size == uncompressed_size:
+        compressed_data = apk_file.read(uncompressed_size)
+        extracted_data = compressed_data
+        indicator = 'STORED_TAMPERED'
     else:
+        cur_loc = apk_file.tell()
         try:
-            cur_loc = apk_file.tell()
             compressed_data = apk_file.read(compressed_size)
             extracted_data = zlib.decompress(compressed_data, -15)
             indicator = 'DEFLATED_TAMPERED'
