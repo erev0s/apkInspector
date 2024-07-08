@@ -121,8 +121,11 @@ def process_elements_indicators(file):
         file.seek(cur_pos)
         if cur_pos == 0 or (
                 _type in possible_types and _header_size >= min_size):
-            if _size < min_size and _type == 257:
-                wrong_end_namespace_size = True
+            if _size < min_size:
+                if _type == 257:
+                    wrong_end_namespace_size = True
+                file.read(1)
+                continue
             chunk_type = ManifestStruct.parse_next_header(file)
             elements.append(chunk_type)
             continue
