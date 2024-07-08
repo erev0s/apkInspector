@@ -124,6 +124,8 @@ def process_elements_indicators(file):
             if _size < min_size:
                 if _type == 257:
                     wrong_end_namespace_size = True
+                    if file.getbuffer().nbytes <= cur_pos + 24:
+                        break
                 file.read(1)
                 continue
             chunk_type = ManifestStruct.parse_next_header(file)
