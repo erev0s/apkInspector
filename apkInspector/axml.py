@@ -287,6 +287,8 @@ class StringPoolType:
                 break
             file.seek(cur_pos)
             file.read(1)
+            if file.getbuffer().nbytes < file.tell() + 8:
+                raise ValueError("Resource Map header was not detected.")
         string_pool_end = file.tell()
         file.seek(string_pool_start)
         string_pool_data = file.read(string_pool_end - string_pool_start)

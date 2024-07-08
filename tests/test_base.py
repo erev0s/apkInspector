@@ -1,3 +1,4 @@
+import glob
 import io
 import os
 import unittest
@@ -6,7 +7,7 @@ import hashlib
 from apkInspector.extract import extract_file_based_on_header_info
 from apkInspector.headers import EndOfCentralDirectoryRecord, CentralDirectory, ZipEntry, LocalHeaderRecord
 from apkInspector.indicators import apk_tampering_check
-from apkInspector.axml import get_manifest
+from apkInspector.axml import get_manifest, parse_apk_for_manifest
 
 
 class ApkInspectorTestCase(unittest.TestCase):
@@ -245,6 +246,14 @@ class ApkInspectorTestCase(unittest.TestCase):
             res = apk_tampering_check(apk_file, False)
             self.assertIn('classes.dex', res['zip tampering']['unique_entries'])
             self.assertIn('classes.deP', res['zip tampering']['unique_entries'])
+
+    def test_manifest_invalid_res_map(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(test_dir, 'res', 'manifest', 'AndroidManifest_resource_map_not_found.xml'), "rb") as mf:
+            with self.assertRaises(ValueError) as context:
+                get_manifest(io.BytesIO(mf.read()))
+            self.assertEqual(str(context.exception), "Resource Map header was not detected.")
+
 
 
 if __name__ == '__main__':
