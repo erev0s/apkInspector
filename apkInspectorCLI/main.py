@@ -19,6 +19,20 @@ def print_nested_dict(dictionary, parent_key=''):
             print(f"{full_key}: {value}")
 
 
+def get_apk_files(path):
+    # If the path is a single file, return it as a list if it's an APK
+    if os.path.isfile(path) and path.endswith('.apk'):
+        return [path]
+
+    # If the path is a directory, return a list of all APK files in it
+    elif os.path.isdir(path):
+        return [os.path.join(path, f) for f in os.listdir(path) if
+                f.endswith('.apk') and os.path.isfile(os.path.join(path, f))]
+
+    # If the path is invalid or not an APK file, return an empty list
+    return []
+
+
 def main():
     parser = argparse.ArgumentParser(description='apkInspector is a tool designed to provide detailed insights into '
                                                  'the zip structure of APK files, offering the '
@@ -58,73 +72,79 @@ def main():
 """
         print(mm)
         print(f"apkInspector Library Version: {version}")
-        print(f"Copyright 2023 erev0s <projects@erev0s.com>\n")
+        print(f"Copyright 2024 erev0s <projects@erev0s.com>\n")
         return
     print(f"apkInspector Version: {version}")
-    print(f"Copyright 2023 erev0s <projects@erev0s.com>\n")
+    print(f"Copyright 2024 erev0s <projects@erev0s.com>\n")
     if args.apk is None and args.specify_manifest is None:
         parser.error('APK file or AndroidManifest.xml file is required')
     if not (args.specify_manifest is None) != (args.apk is None):
         parser.error(
             'Please specify an apk file with flag "-apk" or an AndroidManifest.xml file with flag "-sm", but not both.')
     if args.apk:
-        apk_name = os.path.splitext(args.apk)[0]
-        with open(args.apk, 'rb') as apk_file:
-            zipentry = ZipEntry.parse(apk_file)
-            if args.filename and args.extract:
-                cd_h_of_file = zipentry.get_central_directory_entry_dict(args.filename)
-                if cd_h_of_file is None:
-                    print(f"It appears that file: {args.filename} is not among the entries of the central directory!")
-                    return
-                local_header_of_file = zipentry.get_local_header_dict(args.filename)
-                print_headers_of_filename(cd_h_of_file, local_header_of_file)
-                extracted_data = extract_file_based_on_header_info(apk_file, local_header_of_file, cd_h_of_file)[0]
-                save_data_to_file(f"EXTRACTED_{args.filename}", extracted_data)
-            elif args.filename:
-                cd_h_of_file = zipentry.get_central_directory_entry_dict(args.filename)
-                if cd_h_of_file is None:
-                    print(f"It appears that file: {args.filename} is not among the entries of the central directory!")
-                    return
-                local_header_of_file = zipentry.get_local_header_dict(args.filename)
-                print_headers_of_filename(cd_h_of_file, local_header_of_file)
-            elif args.extract_all:
-                print(f"Number of entries: {len(zipentry.central_directory.entries)}")
-                if not extract_all_files_from_central_directory(apk_file, zipentry.to_dict()["central_directory"], zipentry.to_dict()["local_headers"], apk_name):
-                    print(f"Extraction successful for: {apk_name}")
-            elif args.list_local:
-                show_and_save_info_of_headers(zipentry.to_dict()["local_headers"], apk_name, "local", args.export, True)
-                print(f"Local headers list complete. Export: {args.export}")
-            elif args.list_central:
-                show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "central", args.export, True)
-                print(f"Central header list complete. Export: {args.export}")
-            elif args.list_all:
-                show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "local", args.export, True)
-                show_and_save_info_of_headers(zipentry.to_dict()["local_headers"], apk_name, "local", args.export, True)
-                print(f"Central and local headers list complete. Export: {args.export}")
-            elif args.manifest:
-                cd_h_of_file = zipentry.get_central_directory_entry_dict("AndroidManifest.xml")
-                local_header_of_file = zipentry.get_local_header_dict("AndroidManifest.xml")
-                extracted_data = io.BytesIO(
-                    extract_file_based_on_header_info(apk_file, local_header_of_file, cd_h_of_file)[0])
-                manifest = get_manifest(extracted_data)
-                with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
-                    xml_file.write(manifest)
-                print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
-            elif args.analyze:
-                tamperings = apk_tampering_check(zipentry.zip, False)
-                if tamperings['zip tampering']:
-                    print(
-                        f"\nThe zip structure was tampered with using the following patters:\n")
-                    print_nested_dict(tamperings['zip tampering'])
+        apk_files = get_apk_files(args.apk)
+        if not apk_files:
+            print(f"No APK files found at: {args.apk}")
+            return
+        for apk in apk_files:
+            pretty_print_header(f"Results for {apk}:")
+            apk_name = os.path.splitext(apk)[0]
+            with open(apk, 'rb') as apk_file:
+                zipentry = ZipEntry.parse(apk_file)
+                if args.filename and args.extract:
+                    cd_h_of_file = zipentry.get_central_directory_entry_dict(args.filename)
+                    if cd_h_of_file is None:
+                        print(f"It appears that file: {args.filename} is not among the entries of the central directory!")
+                        return
+                    local_header_of_file = zipentry.get_local_header_dict(args.filename)
+                    print_headers_of_filename(cd_h_of_file, local_header_of_file)
+                    extracted_data = extract_file_based_on_header_info(apk_file, local_header_of_file, cd_h_of_file)[0]
+                    save_data_to_file(f"EXTRACTED_{args.filename}", extracted_data)
+                elif args.filename:
+                    cd_h_of_file = zipentry.get_central_directory_entry_dict(args.filename)
+                    if cd_h_of_file is None:
+                        print(f"It appears that file: {args.filename} is not among the entries of the central directory!")
+                        return
+                    local_header_of_file = zipentry.get_local_header_dict(args.filename)
+                    print_headers_of_filename(cd_h_of_file, local_header_of_file)
+                elif args.extract_all:
+                    print(f"Number of entries: {len(zipentry.central_directory.entries)}")
+                    if not extract_all_files_from_central_directory(apk_file, zipentry.to_dict()["central_directory"], zipentry.to_dict()["local_headers"], apk_name):
+                        print(f"Extraction successful for: {apk_name}")
+                elif args.list_local:
+                    show_and_save_info_of_headers(zipentry.to_dict()["local_headers"], apk_name, "local", args.export, True)
+                    print(f"Local headers list complete. Export: {args.export}")
+                elif args.list_central:
+                    show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "central", args.export, True)
+                    print(f"Central header list complete. Export: {args.export}")
+                elif args.list_all:
+                    show_and_save_info_of_headers(zipentry.to_dict()["central_directory"], apk_name, "local", args.export, True)
+                    show_and_save_info_of_headers(zipentry.to_dict()["local_headers"], apk_name, "local", args.export, True)
+                    print(f"Central and local headers list complete. Export: {args.export}")
+                elif args.manifest:
+                    cd_h_of_file = zipentry.get_central_directory_entry_dict("AndroidManifest.xml")
+                    local_header_of_file = zipentry.get_local_header_dict("AndroidManifest.xml")
+                    extracted_data = io.BytesIO(
+                        extract_file_based_on_header_info(apk_file, local_header_of_file, cd_h_of_file)[0])
+                    manifest = get_manifest(extracted_data)
+                    with open("decoded_AndroidManifest.xml", "w", encoding="utf-8") as xml_file:
+                        xml_file.write(manifest)
+                    print("AndroidManifest was saved as: decoded_AndroidManifest.xml")
+                elif args.analyze:
+                    tamperings = apk_tampering_check(zipentry.zip, False)
+                    if tamperings['zip tampering']:
+                        print(
+                            f"\nThe zip structure was tampered with using the following patterns:\n")
+                        print_nested_dict(tamperings['zip tampering'])
+                    else:
+                        print(f"No files were detected were a tampering in the zip structure was present.")
+                    if tamperings['manifest tampering']:
+                        print(f"\n\nThe AndroidManifest.xml file was tampered using the following patterns:\n")
+                        print_nested_dict(tamperings['manifest tampering'])
+                    else:
+                        print(f"The AndroidManifest.xml file does not seem to be tampered structurally.")
                 else:
-                    print(f"No files were detected were a tampering in the zip structure was present.")
-                if tamperings['manifest tampering']:
-                    print(f"\n\nThe AndroidManifest.xml file was tampered using the following patterns:\n")
-                    print_nested_dict(tamperings['manifest tampering'])
-                else:
-                    print(f"The AndroidManifest.xml file does not seem to be tampered structurally.")
-            else:
-                parser.print_help()
+                    parser.print_help()
     elif args.specify_manifest:
         with open(args.specify_manifest, 'rb') as enc_manifest:
             manifest = get_manifest(io.BytesIO(enc_manifest.read()))
