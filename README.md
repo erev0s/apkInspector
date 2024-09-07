@@ -80,12 +80,9 @@ The command-line interface (CLI) serves as a practical illustration of how the m
 ## Reliability
 Please take [a look at the results](https://github.com/erev0s/apkInspector/tree/main/tests/top_apps) from testing apkInspector against a set of top Play Store applications
 
-## Planned todo
- - Improve documentation
+## Planned to-do
+ - Improve documentation (add examples)
  - Improve code coverage
-
-## Disclaimer
-It should be kept in mind that apkInspector is an evolving project, a work in progress. As such, users should anticipate occasional bugs and anticipate updates and upgrades as the tool continues to mature and enhance its functionality. Your feedback and contributions to apkInspector are highly appreciated as we work together to improve and refine its capabilities.
 
 ## Contributions
 We welcome contributions from the open-source community to help improve and enhance apkInspector. Whether you're a developer, tester, or documentation enthusiast, your contributions are valuable.
@@ -94,5 +91,8 @@ We welcome contributions from the open-source community to help improve and enha
  - [androguard](https://github.com/androguard/androguard/)
  - [medusa](https://github.com/Ch0pin/medusa)
 
+## Presentation of the tool and the research behind it
+ - Defcon 32 | [PDF](docs/presentation/apkinspector-Defon32-presentation.pdf)
 
-
+## Disclaimer
+It should be kept in mind that apkInspector is an evolving project, a work in progress. As such, users should anticipate occasional bugs and anticipate updates and upgrades as the tool continues to mature and enhance its functionality. Your feedback and contributions to apkInspector are highly appreciated as we work together to improve and refine its capabilities.
