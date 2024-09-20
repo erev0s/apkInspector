@@ -577,11 +577,7 @@ class XmlcDataElement:
         :rtype: XmlcDataElement
         """
         cdata_data = file.read(12)
-        data_index = struct.unpack('<I', cdata_data)
-        typed_value_size = struct.unpack('<H', cdata_data)[0]
-        typed_value_res0 = struct.unpack('<B', cdata_data)[0]
-        typed_value_datatype = struct.unpack('<B', cdata_data)[0]
-        typed_value_data = struct.unpack('<I', cdata_data)[0]
+        data_index, typed_value_size, typed_value_res0, typed_value_datatype, typed_value_data = struct.unpack('<IHBBI', cdata_data)
         return cls(header_t, data_index, typed_value_size, typed_value_res0,
                    typed_value_datatype, typed_value_data, cdata_data)
 
@@ -830,7 +826,7 @@ def create_manifest(elements, string_list):
         elif isinstance(element, XmlcDataElement):
             if android_manifest_xml[-1][-1] == '\n':
                 android_manifest_xml[-1] = android_manifest_xml[-1].replace('\n',
-                                                                            string_list[element.data_index[0]])
+                                                                            string_list[element.data_index])
         elif isinstance(element, XmlEndElement):
             name = string_list[element.attrext[1]]
             closing_tag = f"</{name}>" if name == "manifest" else f"</{name}>\n"
