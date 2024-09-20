@@ -254,6 +254,12 @@ class ApkInspectorTestCase(unittest.TestCase):
             self.assertEqual(str(context.exception), "Resource Map header was not detected.")
 
 
+    def test_manifest_cdata(self):
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(test_dir, 'res', 'manifest', 'AndroidManifest_CDATA.xml'), "rb") as mf:
+            mnfst = get_manifest(io.BytesIO(mf.read()))
+            lines = mnfst.split('\n')
+            self.assertEqual(lines[5], '<intent-filter>com.erev0s.minimal<action android:name="android.intent.action.MAIN">')
 
 if __name__ == '__main__':
     unittest.main()
