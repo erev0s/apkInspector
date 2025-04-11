@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import struct
 from typing import Dict
@@ -317,7 +318,7 @@ class LocalHeaderRecord:
         header_signature = apk_file.read(4)
 
         if not header_signature == b'\x50\x4b\x03\x04':
-            print(f"Does not seem to be the start of a local header!")
+            logging.warning("Does not seem to be the start of a local header!")
             return None
         else:
             version_needed_to_extract = struct.unpack('<H', apk_file.read(2))[0]
@@ -410,7 +411,8 @@ class ZipEntry:
         local_headers = {}
         for entry in central_directory.entries:
             local_header_entry = LocalHeaderRecord.parse(apk_file, central_directory.entries[entry])
-            local_headers[local_header_entry.filename] = local_header_entry
+            if local_header_entry:
+                local_headers[local_header_entry.filename] = local_header_entry
         return cls(apk_file, eocd, central_directory, local_headers)
 
     @classmethod
@@ -524,7 +526,7 @@ class ZipEntry:
         output_path = os.path.join(extract_path, apk_name)
         if not extract_all_files_from_central_directory(self.zip, self.to_dict()["central_directory"],
                                                         self.to_dict()["local_headers"], output_path):
-            print(f"Extraction successful for: {apk_name}")
+            logging.info(f"Extraction successful for: {apk_name}")
 
 
 def print_headers_of_filename(cd_h_of_file, local_header_of_file):
@@ -537,7 +539,7 @@ def print_headers_of_filename(cd_h_of_file, local_header_of_file):
     :type local_header_of_file: dict
     """
     if not cd_h_of_file or not local_header_of_file:
-        print("Are you sure the filename exists?")
+        logging.info("Are you sure the filename exists?")
         return
     pretty_print_header("CENTRAL DIRECTORY")
     for k in cd_h_of_file:
