@@ -602,7 +602,7 @@ class ManifestStruct:
         :param file: The AndroidManifest file
         :type file: io.BytesIO
         """
-        possible_types = {256, 257, 258, 259, 260}
+        possible_types = {256, 257, 258, 259, 260, 512}
         min_size = 8
         while True:
             cur_pos = file.tell()
@@ -713,12 +713,16 @@ class ManifestStruct:
         return cls(header, string_pool, resource_map, elements)
 
 
+def not_implemented_yet(a, b):
+    return 0
+
 chunk_type_handlers = {
     '0x100': XmlStartNamespace.parse,  # RES_XML_START_NAMESPACE_TYPE
     '0x101': XmlEndNamespace.parse,  # RES_XML_END_NAMESPACE_TYPE
     '0x102': XmlStartElement.parse,  # RES_XML_START_ELEMENT_TYPE
     '0x103': XmlEndElement.parse,  # RES_XML_END_ELEMENT_TYPE
     '0x104': XmlcDataElement.parse,  # RES_XML_CDATA_TYPE
+    '0x200': not_implemented_yet,
 }
 
 
@@ -803,10 +807,9 @@ def create_manifest(elements, string_list):
     ns_declared = []
     for element in elements:
         if isinstance(element, XmlStartNamespace):
-            namespaces[
-                string_list[
-                    element.ext[0]]] = f'xmlns:{string_list[element.ext[0]]}="{string_list[element.ext[1]]}"'
-            ns_dict[string_list[element.ext[1]]] = string_list[element.ext[0]]
+            if element.ext[0] < len(string_list) or element.ext[1] < len(string_list):
+                namespaces[string_list[element.ext[0]]] = f'xmlns:{string_list[element.ext[0]]}="{string_list[element.ext[1]]}"'
+                ns_dict[string_list[element.ext[1]]] = string_list[element.ext[0]]
         elif isinstance(element, XmlStartElement):
             attributes = process_attributes(element.attributes, string_list, ns_dict)
             attr_ns_list = set(ns.split(':')[0] for ns in attributes.split(' ') if ':' in ns)
