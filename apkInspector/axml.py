@@ -596,23 +596,27 @@ class ManifestStruct:
     @staticmethod
     def check_reached_element(file: io.BytesIO):
         """
-        Static method to check if the next element right after the resource map chunk has been reached. There is only a
-        set of possible elements after the resource map chunk that could be met.
+        Static method to check if the next element right after the resource map chunk has been reached.
+        Android tolerates unknown chunk types, so we only need to verify
+        there's enough data for a header and that the header size is plausible.
+        Reference: AOSP ResXMLTree::setTo()
 
         :param file: The AndroidManifest file
         :type file: io.BytesIO
         """
-        possible_types = {256, 257, 258, 259, 260}
-        min_size = 8
+        min_size = 8  # 2 bytes type, 2 bytes header_size, 4 bytes total_size
         while True:
             cur_pos = file.tell()
-            if file.getbuffer().nbytes < cur_pos + min_size:  # we reached the end of the file
+            if file.getbuffer().nbytes < cur_pos + min_size:
+                break  # not enough data for a header
+            try:
+                _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
+                file.seek(cur_pos)
+                if min_size <= _header_size <= _size:
+                    return True  # Valid header, regardless of type
+            except struct.error:
                 break
-            _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
-            file.seek(cur_pos)
-            if _type in possible_types and _header_size >= min_size:
-                return True
-            file.read(1)
+            file.seek(cur_pos + 1)  # Try next byte if not valid
 
     @staticmethod
     def parse_next_header(file):
