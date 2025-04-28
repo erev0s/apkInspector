@@ -602,7 +602,7 @@ class ManifestStruct:
         :param file: The AndroidManifest file
         :type file: io.BytesIO
         """
-        possible_types = {256, 257, 258, 259, 260, 512}
+        possible_types = {256, 257, 258, 259, 260}
         min_size = 8
         while True:
             cur_pos = file.tell()
