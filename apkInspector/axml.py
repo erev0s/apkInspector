@@ -602,7 +602,7 @@ class ManifestStruct:
         :param file: The AndroidManifest file
         :type file: io.BytesIO
         """
-        possible_types = {256, 257, 258, 259, 260}
+        possible_types = {256, 257, 258, 259, 260, 512}
         min_size = 8
         while True:
             cur_pos = file.tell()
@@ -631,10 +631,8 @@ class ManifestStruct:
         if chunk_header is None:  # end of file
             return None
         chunk_type = hex(chunk_header.type)
-        if chunk_type in chunk_type_handlers:
-            return chunk_type_handlers[chunk_type](file, chunk_header_total)
-        else:
-            raise NotImplementedError(f"Unsupported chunk type: {chunk_type}")
+        handler = chunk_type_handlers.get(chunk_type, chunk_type_handlers['default'])
+        return handler(file, chunk_header_total)
 
     @staticmethod
     def process_elements(file, num_of_elements=None):
@@ -658,7 +656,11 @@ class ManifestStruct:
             resXMLTree_node = ResXMLHeader.parse(file)
             cur_elem_data = read_remaining(file, resXMLTree_node.header)
             elem_data = resXMLTree_node.header.data + resXMLTree_node.data + cur_elem_data
-            elements.append(ManifestStruct.parse_next_header(io.BytesIO(elem_data)))
+            element = ManifestStruct.parse_next_header(io.BytesIO(elem_data))
+            if isinstance(element, dict) and "raw" in element:
+                logging.warning(f"Unknown chunk type found: {element['type']}")
+                continue  # TODO: consider value in collecting this!
+            elements.append(element)
             if num_of_elements is None:
                 continue
             if len(elements) == num_of_elements:
@@ -713,14 +715,29 @@ class ManifestStruct:
         return cls(header, string_pool, resource_map, elements)
 
 
+def handle_unknown_chunk(file: io.BytesIO, header_t: ResXMLHeader):
+    """
+    Default handler for unknown chunk types.
+    # ResourceTypes.cpp skips unrecognized chunk types
+    # as long as their size and header are valid.
+    # Reference: AOSP ResXMLTree::setTo() and ResXMLParser::nextNode()
+    """
+    data = read_remaining(file, header_t.header)
+    # Optional: return raw chunk for logging or malware analysis
+    return {
+        "type": hex(header_t.header.type),
+        "raw": data
+    }
+
+
 chunk_type_handlers = {
     '0x100': XmlStartNamespace.parse,  # RES_XML_START_NAMESPACE_TYPE
     '0x101': XmlEndNamespace.parse,  # RES_XML_END_NAMESPACE_TYPE
     '0x102': XmlStartElement.parse,  # RES_XML_START_ELEMENT_TYPE
     '0x103': XmlEndElement.parse,  # RES_XML_END_ELEMENT_TYPE
     '0x104': XmlcDataElement.parse,  # RES_XML_CDATA_TYPE
+    'default': handle_unknown_chunk  # fallback
 }
-
 
 def read_remaining(file: io.BytesIO, header: ResChunkHeader):
     """
@@ -803,10 +820,9 @@ def create_manifest(elements, string_list):
     ns_declared = []
     for element in elements:
         if isinstance(element, XmlStartNamespace):
-            namespaces[
-                string_list[
-                    element.ext[0]]] = f'xmlns:{string_list[element.ext[0]]}="{string_list[element.ext[1]]}"'
-            ns_dict[string_list[element.ext[1]]] = string_list[element.ext[0]]
+            if element.ext[0] < len(string_list) or element.ext[1] < len(string_list):
+                namespaces[string_list[element.ext[0]]] = f'xmlns:{string_list[element.ext[0]]}="{string_list[element.ext[1]]}"'
+                ns_dict[string_list[element.ext[1]]] = string_list[element.ext[0]]
         elif isinstance(element, XmlStartElement):
             attributes = process_attributes(element.attributes, string_list, ns_dict)
             attr_ns_list = set(ns.split(':')[0] for ns in attributes.split(' ') if ':' in ns)
