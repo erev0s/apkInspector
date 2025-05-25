@@ -122,13 +122,10 @@ def process_elements_indicators(file):
         _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
         file.seek(cur_pos)
         if not (min_size <= _header_size <= _size):
-            file.seek(cur_pos + 1)
-            dummy_data_between_elements = True
-            continue
-        if _type == 257 and _size < min_size:
-            wrong_end_namespace_size = True
-            if file.getbuffer().nbytes <= cur_pos + 24:
-                break
+            if _type == 257 and _size < min_size:
+                wrong_end_namespace_size = True
+                file.read(24)
+                continue
             file.seek(cur_pos + 1)
             dummy_data_between_elements = True
             continue
