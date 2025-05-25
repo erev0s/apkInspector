@@ -1,3 +1,4 @@
+import logging
 import zlib
 import os
 
@@ -50,9 +51,13 @@ def extract_file_based_on_header_info(apk_file, local_header_info, central_direc
         cur_loc = apk_file.tell()
         try:
             compressed_data = apk_file.read(compressed_size)
-            extracted_data = zlib.decompress(compressed_data, -15)
+            c_obj = zlib.decompressobj(-15)
+            extracted_data = c_obj.decompress(compressed_data)
+            if not c_obj.eof or c_obj.unused_data or c_obj.unconsumed_tail:
+                raise ValueError("Invalid or non-pure deflate")
             indicator = 'DEFLATED_TAMPERED'
-        except:
+        except Exception as e:
+            logging.debug(e)
             apk_file.seek(cur_loc)
             compressed_data = apk_file.read(uncompressed_size)
             extracted_data = compressed_data
