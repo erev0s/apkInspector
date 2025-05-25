@@ -1,9 +1,11 @@
 import io
+import logging
 import struct
 
 from .extract import extract_file_based_on_header_info
 from .headers import ZipEntry
-from .axml import ResChunkHeader, StringPoolType, XmlResourceMapType, XmlStartElement, ManifestStruct
+from .axml import ResChunkHeader, StringPoolType, XmlResourceMapType, XmlStartElement, ManifestStruct, ResXMLHeader, \
+    read_remaining
 
 
 def count_eocd(apk_file):
@@ -110,7 +112,7 @@ def process_elements_indicators(file):
     elements = []
     dummy_data_between_elements = False
     wrong_end_namespace_size = False
-    possible_types = {256, 257, 258, 259, 260}
+    unknown_chunk_type = False
     min_size = 8
     while True:
         cur_pos = file.tell()
@@ -119,21 +121,29 @@ def process_elements_indicators(file):
             break
         _type, _header_size, _size = struct.unpack('<HHL', file.read(8))
         file.seek(cur_pos)
-        if cur_pos == 0 or (
-                _type in possible_types and _header_size >= min_size):
-            if _size < min_size:
-                if _type == 257:
-                    wrong_end_namespace_size = True
-                    if file.getbuffer().nbytes <= cur_pos + 24:
-                        break
-                file.read(1)
-                continue
-            chunk_type = ManifestStruct.parse_next_header(file)
-            elements.append(chunk_type)
+        if not (min_size <= _header_size <= _size):
+            file.seek(cur_pos + 1)
+            dummy_data_between_elements = True
             continue
-        file.read(1)
-        dummy_data_between_elements = True
-    return elements, (dummy_data_between_elements, wrong_end_namespace_size)
+        if _type == 257 and _size < min_size:
+            wrong_end_namespace_size = True
+            if file.getbuffer().nbytes <= cur_pos + 24:
+                break
+            file.seek(cur_pos + 1)
+            dummy_data_between_elements = True
+            continue
+        res_node = ResXMLHeader.parse(file)
+        if res_node.header is None:
+            break
+        tail = read_remaining(file, res_node.header)
+        raw_chunk = res_node.header.data + res_node.data + tail
+        elem = ManifestStruct.parse_next_header(io.BytesIO(raw_chunk))
+        if isinstance(elem, dict) and "raw" in elem:
+            unknown_chunk_type = True
+            continue
+
+        elements.append(elem)
+    return elements, (dummy_data_between_elements, wrong_end_namespace_size, unknown_chunk_type)
 
 
 def manifest_tampering_indicators(manifest):
@@ -167,6 +177,8 @@ def manifest_tampering_indicators(manifest):
         manifest_tampering_indicators_dict['invalid_data_between_elements'] = True
     if dummy[1]:
         manifest_tampering_indicators_dict['zero_size_header_for_namespace_end_nodes'] = True
+    if dummy[2]:
+        manifest_tampering_indicators_dict['unknown_chunk_type'] = True
     return manifest_tampering_indicators_dict
 
 
