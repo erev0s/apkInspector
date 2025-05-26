@@ -31,12 +31,11 @@ apkInspector offers a command line tool with the same name, with the following o
 $ apkInspector -h
 usage: apkInspector [-h] [-apk APK] [-f FILENAME] [-ll] [-lc] [-la] [-e] [-x] [-xa] [-m] [-sm SPECIFY_MANIFEST] [-a] [-v]
 
-apkInspector is a tool designed to provide detailed insights into the zip structure of APK files, offering the capability to extract
-content and decode the AndroidManifest.xml file.
+apkInspector is a tool designed to provide detailed insights into the zip structure of APK files, offering the capability to extract content and decode the AndroidManifest.xml file.
 
 options:
   -h, --help            show this help message and exit
-  -apk APK              APK to inspect
+  -apk APK              A single APK to inspect or a directory where multiple APKs may reside.
   -f FILENAME, --filename FILENAME
                         Filename to provide info for
   -ll, --list-local     List all files by name from local headers
