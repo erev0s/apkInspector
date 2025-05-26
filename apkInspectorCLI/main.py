@@ -21,7 +21,7 @@ def print_nested_dict(dictionary, parent_key=''):
 
 def get_apk_files(path):
     # If the path is a single file, return it as a list if it's an APK
-    if os.path.isfile(path) and path.endswith('.apk'):
+    if os.path.isfile(path):
         return [path]
 
     # If the path is a directory, return a list of all APK files in it
@@ -38,7 +38,7 @@ def main():
                                                  'the zip structure of APK files, offering the '
                                                  'capability to extract content and decode the AndroidManifest.xml '
                                                  'file.')
-    parser.add_argument('-apk', help='APK to inspect')
+    parser.add_argument('-apk', help='A single APK to inspect or a directory where multiple APKs may reside.')
     parser.add_argument('-f', '--filename', help='Filename to provide info for')
     parser.add_argument('-ll', '--list-local', action='store_true', help='List all files by name from local headers')
     parser.add_argument('-lc', '--list-central', action='store_true', help='List all files by name from central '
@@ -72,10 +72,10 @@ def main():
 """
         print(mm)
         print(f"apkInspector Library Version: {version}")
-        print(f"Copyright 2024 erev0s <projects@erev0s.com>\n")
+        print(f"Copyright 2025 erev0s <projects@erev0s.com>\n")
         return
     print(f"apkInspector Version: {version}")
-    print(f"Copyright 2024 erev0s <projects@erev0s.com>\n")
+    print(f"Copyright 2025 erev0s <projects@erev0s.com>\n")
     if args.apk is None and args.specify_manifest is None:
         parser.error('APK file or AndroidManifest.xml file is required')
     if not (args.specify_manifest is None) != (args.apk is None):
