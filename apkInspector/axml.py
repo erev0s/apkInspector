@@ -773,7 +773,10 @@ def process_attributes(attributes, string_list, ns_dict):
     """
     attribute_list = []
     for attr in attributes:
-        name = string_list[attr.name_index]
+        try:
+            name = string_list[attr.name_index]
+        except:
+            continue
         if not name:  # It happens that the attr.name_index points to an empty string in StringPool and you have to use
             # the public.xml. It falls outside the scope of the tool, so I am not going to solve it for now.
             name = f'Unknown_Attribute_Name_{random.randint(1000, 9999)}'
