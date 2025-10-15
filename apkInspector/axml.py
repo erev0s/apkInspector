@@ -790,6 +790,7 @@ def process_attributes(attributes, string_list, ns_dict):
         if "\n" in name:
             # may be obfuscated attribute - see REAndroid/APKEditor tool
             # https://github.com/REAndroid/APKEditor
+            logging.warning(f"Skip attribute with name {name!r}")
             continue
    
         if attr.typed_value_datatype == 1:  # reference type
