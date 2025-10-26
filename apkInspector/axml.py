@@ -515,6 +515,10 @@ class XmlStartElement:
             '<IIHHHHHH', attrext_data)
         attrext = [full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index,
                    style_index]
+        if attr_start != 20:
+            # Cover for dummy data between ResXMLTree_attrExt and the 1st ResXMLTree_attribute
+            gap_size = attr_start - 20
+            file.read(gap_size)
         attributes_data = file.read(attr_size * attr_count)
         attributes = XmlAttributeElement.parse(io.BytesIO(attributes_data), attr_count, attr_size)
         return cls(header_t, attrext, attributes, (attrext_data + attributes_data))
@@ -780,6 +784,9 @@ def process_attributes(attributes, string_list, ns_dict):
         if not name:  # It happens that the attr.name_index points to an empty string in StringPool and you have to use
             # the public.xml. It falls outside the scope of the tool, so I am not going to solve it for now.
             name = f'Unknown_Attribute_Name_{random.randint(1000, 9999)}'
+        if "\n" in name:
+            # may be obfuscated attribute - https://github.com/REAndroid/APKEditor
+            continue
         if attr.typed_value_datatype == 1:  # reference type
             value = f"@{attr.typed_value_data}"
         elif attr.typed_value_datatype == 3:  # string type
