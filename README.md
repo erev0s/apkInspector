@@ -69,6 +69,7 @@ The library component of apkInspector is designed with extensibility in mind, al
    - Tampered StringCount value
    - Strings surpassing maximum length
    - Invalid data between elements
+   - Unexpected attribute start
    - Unexpected attribute size
    - Unexpected attribute names or values
    - Zero size header for namespace end nodes

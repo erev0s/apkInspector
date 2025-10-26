@@ -167,6 +167,8 @@ def manifest_tampering_indicators(manifest):
             for attr in element.attributes:
                 if element.attrext[3] != 20:
                     manifest_tampering_indicators_dict['unexpected_attribute_size'] = True
+                if element.attrext[2] != 20:
+                    manifest_tampering_indicators_dict['unexpected_attribute_start'] = True
                 if 0 <= attr.name_index < len(string_pool.string_list):
                     if string_pool.string_list[attr.name_index] == "":
                         manifest_tampering_indicators_dict['unexpected_attribute_names'] = True
