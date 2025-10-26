@@ -785,11 +785,8 @@ def process_attributes(attributes, string_list, ns_dict):
             # the public.xml. It falls outside the scope of the tool, so I am not going to solve it for now.
             name = f'Unknown_Attribute_Name_{random.randint(1000, 9999)}'
         if "\n" in name:
-            # may be obfuscated attribute - see REAndroid/APKEditor tool
-            # https://github.com/REAndroid/APKEditor
-            logging.warning(f"Skip attribute with name {name!r}")
+            # may be obfuscated attribute - https://github.com/REAndroid/APKEditor
             continue
-   
         if attr.typed_value_datatype == 1:  # reference type
             value = f"@{attr.typed_value_data}"
         elif attr.typed_value_datatype == 3:  # string type
