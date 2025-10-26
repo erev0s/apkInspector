@@ -516,12 +516,9 @@ class XmlStartElement:
         attrext = [full_namespace_index, name_index, attr_start, attr_size, attr_count, id_index, class_index,
                    style_index]
         if attr_start != 20:
-            logging.info(f"Unusual attribute offset - {attr_start}, must be 20")
+            # Cover for dummy data between ResXMLTree_attrExt and the 1st ResXMLTree_attribute
             gap_size = attr_start - 20
-            logging.info(f"Skip gap {gap_size} bytes")
             file.read(gap_size)
-        if attr_size != 20:
-            logging.info(f"Unusual attribute size - {attr_size} bytes, must be 20")
         attributes_data = file.read(attr_size * attr_count)
         attributes = XmlAttributeElement.parse(io.BytesIO(attributes_data), attr_count, attr_size)
         return cls(header_t, attrext, attributes, (attrext_data + attributes_data))
