@@ -15,7 +15,8 @@ class EndOfCentralDirectoryRecord:
     def __init__(self, signature, number_of_this_disk, disk_where_central_directory_starts,
                  number_of_central_directory_records_on_this_disk,
                  total_number_of_central_directory_records, size_of_central_directory,
-                 offset_of_start_of_central_directory, comment_length, comment):
+                 offset_of_start_of_central_directory, comment_length, comment,
+                 file_offset=0):
         self.signature = signature
         self.number_of_this_disk = number_of_this_disk
         self.disk_where_central_directory_starts = disk_where_central_directory_starts
@@ -25,6 +26,7 @@ class EndOfCentralDirectoryRecord:
         self.offset_of_start_of_central_directory = offset_of_start_of_central_directory
         self.comment_length = comment_length
         self.comment = comment
+        self.file_offset = file_offset  # actual position of EOCD in the file
 
     @classmethod
     def parse(cls, apk_file):
@@ -78,7 +80,8 @@ class EndOfCentralDirectoryRecord:
             size_of_central_directory,
             offset_of_start_of_central_directory,
             comment_length,
-            comment
+            comment,
+            file_offset=eo_central_directory_offset,
         )
 
     def to_dict(self):
@@ -192,8 +195,9 @@ class CentralDirectory:
     The CentralDirectory containing all the CentralDirectoryEntry entries discovered.
     The entries are listed as a dictionary where the filename is the key.
     """
-    def __init__(self, entries):
+    def __init__(self, entries, offset_adjustment=0):
         self.entries = entries
+        self.offset_adjustment = offset_adjustment
 
     @classmethod
     def parse(cls, apk_file, eocd: EndOfCentralDirectoryRecord = None):
@@ -211,8 +215,15 @@ class CentralDirectory:
         """
         if not eocd:
             eocd = EndOfCentralDirectoryRecord.parse(apk_file)
-        apk_file.seek(eocd.offset_of_start_of_central_directory)
-        if apk_file.tell() != eocd.offset_of_start_of_central_directory:
+
+        # Compute offset adjustment for ZIPs with prepended data or mangled offsets,
+        # using the same approach as Python's zipfile module: the CD must end exactly
+        # where the EOCD begins, so actual_cd_start = eocd.file_offset - size_of_central_directory.
+        actual_cd_offset = eocd.file_offset - eocd.size_of_central_directory
+        offset_adjustment = actual_cd_offset - eocd.offset_of_start_of_central_directory
+
+        apk_file.seek(actual_cd_offset)
+        if apk_file.tell() != actual_cd_offset:
             raise ValueError(f"Failed to find the offset for the central directory within the file!")
 
         central_directory_entries = {}
@@ -252,7 +263,7 @@ class CentralDirectory:
             )
             central_directory_entries[central_directory_entry.filename] = central_directory_entry
 
-        return cls(central_directory_entries)
+        return cls(central_directory_entries, offset_adjustment=offset_adjustment)
 
     def to_dict(self):
         """
@@ -303,7 +314,7 @@ class LocalHeaderRecord:
         self.extra_field = extra_field
 
     @classmethod
-    def parse(cls, apk_file, entry_of_interest: CentralDirectoryEntry):
+    def parse(cls, apk_file, entry_of_interest: CentralDirectoryEntry, offset_adjustment: int = 0):
         """
         Method that attempts to read the local file header according to the specification https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.3.9.TXT.
 
@@ -311,6 +322,8 @@ class LocalHeaderRecord:
         :type apk_file: bytesIO
         :param entry_of_interest: The central directory header of the specific entry of interest
         :type entry_of_interest: CentralDirectoryEntry
+        :param offset_adjustment: adjustment to apply as fallback when the primary offset does not point to a valid local header signature (handles ZIPs with inconsistent CD offsets)
+        :type offset_adjustment: int
         :return: Returns a dictionary with the local header information or None if it failed to find the header.
         :rtype: LocalHeaderRecord or None
         """
@@ -318,25 +331,33 @@ class LocalHeaderRecord:
         header_signature = apk_file.read(4)
 
         if not header_signature == b'\x50\x4b\x03\x04':
-            logging.warning("Does not seem to be the start of a local header!")
-            return None
-        else:
-            version_needed_to_extract = struct.unpack('<H', apk_file.read(2))[0]
-            general_purpose_bit_flag = struct.unpack('<H', apk_file.read(2))[0]
-            compression_method = struct.unpack('<H', apk_file.read(2))[0]
-            file_last_modification_time = struct.unpack('<H', apk_file.read(2))[0]
-            file_last_modification_date = struct.unpack('<H', apk_file.read(2))[0]
-            crc32_of_uncompressed_data = struct.unpack('<I', apk_file.read(4))[0]
-            compressed_size = struct.unpack('<I', apk_file.read(4))[0]
-            uncompressed_size = struct.unpack('<I', apk_file.read(4))[0]
-            file_name_length = struct.unpack('<H', apk_file.read(2))[0]
-            extra_field_length = struct.unpack('<H', apk_file.read(2))[0]
-            try:
-                filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8', 'ignore')
-                extra_field = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8', 'ignore')
-            except:
-                filename = entry_of_interest.filename
-                extra_field = entry_of_interest.extra_field
+            if offset_adjustment != 0:
+                adjusted = entry_of_interest.relative_offset_of_local_file_header + offset_adjustment
+                if adjusted >= 0:
+                    apk_file.seek(adjusted)
+                    header_signature = apk_file.read(4)
+                    if header_signature == b'\x50\x4b\x03\x04':
+                        # Fix the CD entry offset so extraction uses the correct position
+                        entry_of_interest.relative_offset_of_local_file_header = adjusted
+            if not header_signature == b'\x50\x4b\x03\x04':
+                logging.warning("Does not seem to be the start of a local header!")
+                return None
+        version_needed_to_extract = struct.unpack('<H', apk_file.read(2))[0]
+        general_purpose_bit_flag = struct.unpack('<H', apk_file.read(2))[0]
+        compression_method = struct.unpack('<H', apk_file.read(2))[0]
+        file_last_modification_time = struct.unpack('<H', apk_file.read(2))[0]
+        file_last_modification_date = struct.unpack('<H', apk_file.read(2))[0]
+        crc32_of_uncompressed_data = struct.unpack('<I', apk_file.read(4))[0]
+        compressed_size = struct.unpack('<I', apk_file.read(4))[0]
+        uncompressed_size = struct.unpack('<I', apk_file.read(4))[0]
+        file_name_length = struct.unpack('<H', apk_file.read(2))[0]
+        extra_field_length = struct.unpack('<H', apk_file.read(2))[0]
+        try:
+            filename = struct.unpack(f'<{file_name_length}s', apk_file.read(file_name_length))[0].decode('utf-8', 'ignore')
+            extra_field = struct.unpack(f'<{extra_field_length}s', apk_file.read(extra_field_length))[0].decode('utf-8', 'ignore')
+        except:
+            filename = entry_of_interest.filename
+            extra_field = entry_of_interest.extra_field
         return cls(
             version_needed_to_extract, general_purpose_bit_flag, compression_method,
             file_last_modification_time, file_last_modification_date, crc32_of_uncompressed_data,
@@ -410,7 +431,8 @@ class ZipEntry:
         central_directory = CentralDirectory.parse(apk_file, eocd)
         local_headers = {}
         for entry in central_directory.entries:
-            local_header_entry = LocalHeaderRecord.parse(apk_file, central_directory.entries[entry])
+            local_header_entry = LocalHeaderRecord.parse(apk_file, central_directory.entries[entry],
+                                                         central_directory.offset_adjustment)
             if local_header_entry:
                 local_headers[local_header_entry.filename] = local_header_entry
         return cls(apk_file, eocd, central_directory, local_headers)
