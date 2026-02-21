@@ -50,7 +50,7 @@ def main():
     parser.add_argument('-x', '--extract', action='store_true', help='Attempt to extract the file specified by the -f '
                                                                      'flag')
     parser.add_argument('-xa', '--extract-all', action='store_true', help='Attempt to extract all files detected in '
-                                                                          'the central directory header')
+                                                                          'the central directory header -- skipping collisions!')
     parser.add_argument('-m', '--manifest', action='store_true',
                         help='Extract and decode the AndroidManifest.xml')
     parser.add_argument('-sm', '--specify-manifest', help='Pass an encoded AndroidManifest.xml file to be decoded')

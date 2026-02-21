@@ -65,6 +65,7 @@ The library component of apkInspector is designed with extensibility in mind, al
    - End of Central Directory record defined multiple times
    - Unknown compression methods
    - Compressed entry with empty filename
+   - Filenames/Path collisions
    - Unexpected starting signature of AndroidManifest.xml
    - Tampered StringCount value
    - Strings surpassing maximum length

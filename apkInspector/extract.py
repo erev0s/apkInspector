@@ -1,6 +1,7 @@
 import logging
 import zlib
 import os
+import random
 
 
 def extract_file_based_on_header_info(apk_file, local_header_info, central_directory_info):
@@ -65,7 +66,7 @@ def extract_file_based_on_header_info(apk_file, local_header_info, central_direc
     return extracted_data, indicator
 
 
-def extract_all_files_from_central_directory(apk_file, central_directory_entries, local_header_entries, output_dir):
+def extract_all_files_from_central_directory(apk_file, central_directory_entries, local_header_entries, output_dir, retain_collisions=False):
     """
     Extracts all files from an APK based on the entries detected in the central_directory_entries.
 
@@ -77,6 +78,8 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
     :type local_header_entries: dict
     :param output_dir: The output directory where to save the files.
     :type output_dir: str
+    :param retain_collisions: If True, rename and retain entries that cause file/directory collisions. If False, skip them.
+    :type retain_collisions: bool
     :return: Returns 0 if no errors, 1 if an exception and 2 if the output directory already exists
     :rtype: int
     """
@@ -95,8 +98,31 @@ def extract_all_files_from_central_directory(apk_file, central_directory_entries
             # Extract the file using the local header information
             extracted_data = \
                 extract_file_based_on_header_info(apk_file, local_header_entries[filename], cd_header_info)[0]
+            
+            # Check for file/directory collisions and rename if necessary
+            path_components = filename.split('/')
+            modified_filename = filename
+            collision_detected = False
+            for i in range(1, len(path_components)):
+                partial_path = os.path.join(output_dir, '/'.join(path_components[:i]))
+                if os.path.exists(partial_path) and not os.path.isdir(partial_path):
+                    # Collision detected: a file exists where we need a directory
+                    collision_detected = True
+                    if retain_collisions:
+                        collision_suffix = f"__collision__{random.randint(10000, 99999)}"
+                        path_components[i-1] += collision_suffix
+                        modified_filename = '/'.join(path_components)
+                        logging.warning(f"Collision detected for {filename}, renaming to {modified_filename}")
+                    else:
+                        logging.warning(f"Collision detected for {filename}, skipping entry")
+                    break
+            
+            # Skip this entry if collision detected and not retaining
+            if collision_detected and not retain_collisions:
+                continue
+            
             # Construct the output file path
-            output_path = os.path.join(output_dir, filename)
+            output_path = os.path.join(output_dir, modified_filename)
             # Create directories if necessary
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             # Write the extracted data to the output file
