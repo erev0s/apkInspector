@@ -24,9 +24,7 @@ def count_eocd(apk_file):
 
 def detect_path_collisions(central_directory_entries):
     """
-    Detects file/directory path collisions in ZIP entries. Malware may create entries like
-    "AndroidManifest.xml/res/layout.xml" when "AndroidManifest.xml" is already a file,
-    causing extraction failures and evading static analysis.
+    Detects file/directory path collisions in ZIP entries.
 
     :param central_directory_entries: Dictionary of central directory entries
     :type central_directory_entries: dict
