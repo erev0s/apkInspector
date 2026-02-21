@@ -22,6 +22,42 @@ def count_eocd(apk_file):
     return content.count(b'\x50\x4b\x05\x06')
 
 
+def detect_path_collisions(central_directory_entries):
+    """
+    Detects file/directory path collisions in ZIP entries. Malware may create entries like
+    "AndroidManifest.xml/res/layout.xml" when "AndroidManifest.xml" is already a file,
+    causing extraction failures and evading static analysis.
+
+    :param central_directory_entries: Dictionary of central directory entries
+    :type central_directory_entries: dict
+    :return: Count of entries that would cause path collisions
+    :rtype: int
+    """
+    files_set = set()
+    collision_entries = []
+    
+    # Sort entries to process files before their potential "subdirectories"
+    sorted_entries = sorted(central_directory_entries.keys(), key=lambda x: x.count('/'))
+    
+    for filename in sorted_entries:
+        if not filename:
+            continue
+        
+        # Check if any parent path component is already registered as a file
+        path_components = filename.split('/')
+        for i in range(1, len(path_components)):
+            partial_path = '/'.join(path_components[:i])
+            if partial_path in files_set:
+                # Collision detected: trying to use a file as a directory
+                collision_entries.append(filename)
+                break
+        else:
+            # No collision, register this as a file
+            files_set.add(filename)
+    
+    return collision_entries
+
+
 def zip_tampering_indicators(apk_file, strict: bool):
     """
     Method to check the for indicators of tampering in the ZIP structure of the APK. These tamperings in the ZIP
@@ -48,6 +84,12 @@ def zip_tampering_indicators(apk_file, strict: bool):
     common_keys = list(set(zipentry_dict["central_directory"].keys()) & set(zipentry_dict["local_headers"].keys()))
     if unique_keys:
         zip_tampering_indicators_dict['unique_entries'] = unique_keys
+    
+    # Check for file/directory collisions
+    collision_count = detect_path_collisions(zipentry_dict["central_directory"])
+    if len(collision_count) > 0:
+        zip_tampering_indicators_dict['path_collisions'] = len(collision_count)
+    
     for key in common_keys:
         cd_entry = zipentry_dict["central_directory"][key]
         lh_entry = zipentry_dict["local_headers"][key]
